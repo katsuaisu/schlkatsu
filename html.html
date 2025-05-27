@@ -1,0 +1,70 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>:3</title>
+  <link rel="stylesheet" href="css.css" />
+</head>
+<body>
+  <div class="browser-ui">
+    <div class="tab-bar">
+      <button class="tab active" id="tab-todo"> To-Do List</button>
+      <button class="tab" id="tab-gwa"> GWA Calculator</button>
+      <button class="tab" id="tab-transmute"> Grade Transmutation</button>
+    </div>
+
+    <div class="content">
+      <div class="tab-content" id="todo-content">
+        <h2>To-Do List</h2>
+        <form id="todo-form">
+          <input type="text" id="assignment-name" placeholder="Assignment Name" required />
+          <input type="date" id="due-date" required />
+          <button type="submit">Add</button>
+        </form>
+        <table>
+          <thead>
+            <tr>
+              <th>✓</th>
+              <th>Assignment</th>
+              <th>Status</th>
+              <th>Due</th>
+            </tr>
+          </thead>
+          <tbody id="todo-body"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-content hidden" id="gwa-content">
+        <h2>GWA Calculator</h2>
+        <div class="gwa-display" id="gwa-display">GWA: 1.00</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Grade</th>
+            </tr>
+          </thead>
+          <tbody id="gwa-body"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-content hidden" id="transmute-content">
+        <h2>Grade Transmutation</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Current Grade</th>
+              <th>Last Quarter Grade</th>
+              <th>Transmuted Grade</th>
+            </tr>
+          </thead>
+          <tbody id="transmute-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script src="js.js"></script>
+</body>
+</html>
+

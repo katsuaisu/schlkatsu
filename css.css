@@ -1,0 +1,160 @@
+/* Import Simply Rounded Bold font */
+@font-face {
+  font-family: 'Simply Rounded';
+  src: url('Simply Rounded Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+/* Reset and base styles */
+body {
+  margin: 0;
+  font-family: 'Simply Rounded', sans-serif;
+  font-weight: bold;
+  background-image: url("https://i.pinimg.com/originals/72/e0/33/72e0331a65ee23d18dbee80522a60d1a.gif");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.browser-ui {
+  width: 90%;
+  max-width: 900px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(200, 200, 200, 0.3);
+  overflow: hidden;
+}
+
+.tab-bar {
+  display: flex;
+  background: #eaeaf4;
+  padding: 10px;
+  gap: 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab {
+  background: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px 12px 0 0;
+  font-weight: bold;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.2s ease-in-out;
+  font-family: 'Simply Rounded', sans-serif;
+}
+
+.tab.active {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.content {
+  padding: 20px;
+}
+
+.hidden {
+  display: none;
+}
+
+h2 {
+  margin-top: 0;
+  font-family: 'Simply Rounded', sans-serif;
+  font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="date"],
+form button {
+  font-family: 'Simply Rounded', sans-serif;
+  margin: 5px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  outline: none;
+  font-weight: bold;
+}
+
+form button {
+  background: #f9c5d1;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-family: 'Simply Rounded', sans-serif;
+  font-weight: bold;
+}
+
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #f9c5d1;
+  border-radius: 6px;
+}
+
+.status-btn {
+  border: none;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  font-family: 'Simply Rounded', sans-serif;
+}
+
+.not-started {
+  background: #fde2e4;
+}
+.in-progress {
+  background: #fff3cd;
+}
+.completed {
+  background: #d4edda;
+}
+
+.gwa-display {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  background: #eaf4ff;
+  display: inline-block;
+  font-weight: bold;
+  font-family: 'Simply Rounded', sans-serif;
+}
+
+.grade-select {
+  border-radius: 8px;
+  padding: 6px;
+  font-family: 'Simply Rounded', sans-serif;
+  font-weight: bold;
+}
+#gwa-content {
+  max-height: 500px; /* or whatever you want */
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+#gwa-body {
+  overflow-y: auto;
+}
+
+.content {
+  min-height: 300px; /* give it room to breathe */
+}
