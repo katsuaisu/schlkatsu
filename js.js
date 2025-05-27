@@ -1,8 +1,8 @@
-// Apply font and bold styling
+
 document.body.style.fontFamily = "'Simply Rounded', sans-serif";
 document.body.style.fontWeight = "bold";
 
-// Tab switching
+
 document.getElementById('tab-todo').onclick = () => {
   document.getElementById('todo-content').classList.remove('hidden');
   document.getElementById('gwa-content').classList.add('hidden');
@@ -33,7 +33,7 @@ document.getElementById('tab-transmute').onclick = () => {
   document.getElementById('tab-gwa').classList.remove('active');
 };
 
-// To-Do List Logic
+
 const STATUS = ["Not Started", "In Progress", "Completed"];
 const tasks = [];
 
@@ -87,7 +87,7 @@ function renderTasks() {
   });
 }
 
-// GWA Logic
+
 const SUBJECTS = [
   "Biology", "Chemistry", "Physics", "Math", "Statistics",
   "Social Science", "English", "Filipino", "PEHM"
@@ -143,7 +143,6 @@ function renderGrades() {
 
 renderGrades();
 
-// Transmutation Logic
 const transmuteBody = document.getElementById("transmute-body");
 
 function pisayTransmute(val) {
