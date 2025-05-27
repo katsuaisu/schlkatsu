@@ -1,4 +1,4 @@
-/* Import Simply Rounded Bold font */
+
 @font-face {
   font-family: 'Simply Rounded';
   src: url('Simply Rounded Bold.ttf') format('truetype');
@@ -6,7 +6,6 @@
   font-style: normal;
 }
 
-/* Reset and base styles */
 body {
   margin: 0;
   font-family: 'Simply Rounded', sans-serif;
@@ -146,7 +145,7 @@ input[type="checkbox"] {
   font-weight: bold;
 }
 #gwa-content {
-  max-height: 500px; /* or whatever you want */
+  max-height: 500px; 
   overflow-y: auto;
   margin-bottom: 20px;
 }
@@ -156,5 +155,5 @@ input[type="checkbox"] {
 }
 
 .content {
-  min-height: 300px; /* give it room to breathe */
+  min-height: 300px; 
 }
