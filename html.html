@@ -1,70 +1,485 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>:3</title>
-  <link rel="stylesheet" href="css.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>schlkatsu by rei</title>
+    <link rel="stylesheet" href="css.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 </head>
 <body>
-  <div class="browser-ui">
-    <div class="tab-bar">
-      <button class="tab active" id="tab-todo"> To-Do List</button>
-      <button class="tab" id="tab-gwa"> GWA Calculator</button>
-      <button class="tab" id="tab-transmute"> Grade Transmutation</button>
+    <div id="modal-overlay" class="hidden"></div>
+
+    <div id="auth-modal" class="modal-content hidden">
+        <div id="auth-container">
+            <form id="login-form" class="auth-form">
+                <h3 class="auth-title">Welcome Back!</h3>
+                <p class="auth-subtitle">Log in to access your dashboard.</p>
+                <input type="text" id="login-username" class="modal-input" placeholder="Username" required>
+                <input type="password" id="login-password" class="modal-input" placeholder="Password" required>
+                 <p id="login-error" class="auth-error hidden"></p>
+                <button type="submit" class="cute-button auth-button">Login</button>
+                <p class="auth-switch">Don't have an account? <a href="#" id="show-signup">Sign Up</a></p>
+            </form>
+            <form id="signup-form" class="auth-form hidden">
+                <h3 class="auth-title">Create Account</h3>
+                 <p class="auth-subtitle">Start organizing your student life.</p>
+                <input type="text" id="signup-username" class="modal-input" placeholder="Username" required>
+                <input type="password" id="signup-password" class="modal-input" placeholder="Password" required>
+                <input type="text" id="signup-pfp" class="modal-input" placeholder="Profile Picture URL (Optional)">
+                 <p id="signup-error" class="auth-error hidden"></p>
+                <button type="submit" class="cute-button auth-button">Sign Up</button>
+                <p class="auth-switch">Already have an account? <a href="#" id="show-login">Log In</a></p>
+            </form>
+        </div>
     </div>
 
-    <div class="content">
-      <div class="tab-content" id="todo-content">
-        <h2>To-Do List</h2>
-        <form id="todo-form">
-          <input type="text" id="assignment-name" placeholder="Assignment Name" required />
-          <input type="date" id="due-date" required />
-          <button type="submit">Add</button>
-        </form>
-        <table>
-          <thead>
-            <tr>
-              <th>✓</th>
-              <th>Assignment</th>
-              <th>Status</th>
-              <th>Due</th>
-            </tr>
-          </thead>
-          <tbody id="todo-body"></tbody>
-        </table>
-      </div>
 
-      <div class="tab-content hidden" id="gwa-content">
-        <h2>GWA Calculator</h2>
-        <div class="gwa-display" id="gwa-display">GWA: 1.00</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Subject</th>
-              <th>Grade</th>
-            </tr>
-          </thead>
-          <tbody id="gwa-body"></tbody>
-        </table>
-      </div>
+    <div class="app-container">
+        <aside class="left-sidebar">
+            <div class="sidebar-logo">
+                 <i class="fas fa-cat"></i>
+            </div>
+            <nav class="tabs-nav">
+                <button id="tab-dashboard" class="tab-btn active" data-tab="dashboard-content" title="Dashboard">
+                    <i class="fas fa-th-large"></i><span class="sidebar-label">Dashboard</span>
+                </button>
+                <button id="tab-todo" class="tab-btn" data-tab="todo-content" title="To-Do List">
+                    <i class="fas fa-clipboard-list"></i><span class="sidebar-label">To-Do List</span>
+                </button>
+                <button id="tab-gwa" class="tab-btn" data-tab="gwa-content" title="GWA Calculator">
+                    <i class="fas fa-calculator"></i><span class="sidebar-label">GWA Calc</span>
+                </button>
+                <button id="tab-schedule" class="tab-btn" data-tab="schedule-content" title="Schedule">
+                    <i class="fas fa-calendar-week"></i><span class="sidebar-label">Schedule</span>
+                </button>
+                <button id="tab-extracurriculars" class="tab-btn" data-tab="extracurriculars-content" title="Extracurriculars">
+                    <i class="fas fa-award"></i><span class="sidebar-label">Activities</span>
+                </button>
+                <button id="tab-pomodoro" class="tab-btn" data-tab="pomodoro-content" title="Pomodoro Timer">
+                    <i class="fas fa-clock"></i><span class="sidebar-label">Pomodoro</span>
+                </button>
+                <button id="tab-flashcards" class="tab-btn" data-tab="flashcards-content" title="Flashcards">
+                    <i class="fas fa-sticky-note"></i><span class="sidebar-label">Flashcards</span>
+                </button>
+                <button id="tab-notes" class="tab-btn" data-tab="notes-content" title="Notes">
+                    <i class="fas fa-book"></i><span class="sidebar-label">Notes</span>
+                </button>
+                <button id="tab-planner" class="tab-btn" data-tab="planner-content" title="Planner">
+                    <i class="fas fa-calendar-alt"></i><span class="sidebar-label">Planner</span>
+                </button>
+            </nav>
+        </aside>
 
-      <div class="tab-content hidden" id="transmute-content">
-        <h2>Grade Transmutation</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Subject</th>
-              <th>Current Grade</th>
-              <th>Last Quarter Grade</th>
-              <th>Transmuted Grade</th>
-            </tr>
-          </thead>
-          <tbody id="transmute-body"></tbody>
-        </table>
-      </div>
+        <main class="main-content">
+            <div id="tab-content-wrapper">
+
+                <section id="dashboard-content" class="tab-content">
+                    <div class="dashboard-header">
+                        <h2>Dashboard</h2>
+                        <div class="dashboard-controls">
+                            <button id="add-new-subject-dashboard" class="cute-button">
+                                <i class="fas fa-plus"></i> Add New Subject
+                            </button>
+                        </div>
+                    </div>
+                    <div class="dashboard-grid" id="dashboard-subjects-grid">
+                        </div>
+                </section>
+
+                <section id="todo-content" class="tab-content hidden">
+                    <div class="content-header todo-header">
+                        <h2>To-Do List</h2>
+                        <div class="todo-view-switcher">
+                            <button id="show-personal-tasks-btn" class="cute-button view-switch-btn active">My Tasks</button>
+                            <button id="show-section-tasks-btn" class="cute-button view-switch-btn">Section Tasks</button>
+                        </div>
+                    </div>
+                    <div id="personal-tasks-view">
+                        <form id="todo-form" class="todo-form">
+                            <input type="text" id="assignment-name" placeholder="Assignment Name">
+                            <select id="todo-subject-select" class="subject-select">
+                            </select>
+                            <input type="date" id="due-date">
+                            <button type="submit" id="add-task-btn" class="cute-button">Add Task</button>
+                        </form>
+                        <table class="todo-table">
+                            <thead>
+                                <tr>
+                                    <th>Done</th>
+                                    <th>Assignment</th>
+                                    <th>Subject</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="todo-body">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="section-tasks-view" class="hidden">
+                        <div id="section-tasks-header">
+                             <p>Tasks for section <strong id="section-name-display">None</strong>. Add tasks here to share with your section.</p>
+                             <button id="add-section-task-btn" class="cute-button"><i class="fas fa-plus"></i> Add Task for Section</button>
+                        </div>
+                        <table class="todo-table">
+                            <thead>
+                                <tr>
+                                    <th>Assignment</th>
+                                    <th>Subject</th>
+                                    <th>Type</th>
+                                    <th>Source</th>
+                                    <th>Due Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="section-todo-body">
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="gwa-content" class="tab-content hidden">
+                    <h2>GWA Calculator</h2>
+                    <div id="gwa-display" class="gwa-display">Your GWA: 1.00</div>
+                    <table class="gwa-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Previous Grade (1/3)</th>
+                                <th>Current Grade (2/3)</th>
+                                <th>Final Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gwa-body">
+                        </tbody>
+                    </table>
+                </section>
+
+                <section id="schedule-content" class="tab-content hidden">
+                     <div class="content-header">
+                        <h2>Class Schedule</h2>
+                        <select id="schedule-section-select" class="modal-input" style="max-width: 200px; margin-bottom: 0;"></select>
+                    </div>
+                    <div id="schedule-grid" class="schedule-grid">
+                    </div>
+                </section>
+                
+                <section id="extracurriculars-content" class="tab-content hidden">
+                    <div class="content-header">
+                        <h2>Extracurriculars</h2>
+                        <button id="add-extracurricular-btn" class="cute-button"><i class="fas fa-plus"></i> Add Activity</button>
+                    </div>
+                    <div id="extracurriculars-grid" class="extracurriculars-grid">
+                    </div>
+                </section>
+
+                <section id="pomodoro-content" class="tab-content hidden">
+                    <h2>Pomodoro Timer</h2>
+                    <div class="pomodoro-timer">
+                        <div class="timer-display-wrapper">
+                            <div class="timer-display">
+                                <span id="minutes">25</span>:<span id="seconds">00</span>
+                            </div>
+                        </div>
+                        <p id="current-task"> No task selected </p>
+                        <div class="pomodoro-controls">
+                            <input type="number" id="custom-minutes" placeholder="Custom Mins" min="1">
+                            <select id="task-select"></select>
+                            <button id="start-timer" class="cute-button timer-btn">Start</button>
+                            <button id="pause-timer" class="cute-button timer-btn" disabled>Pause</button>
+                            <button id="reset-timer" class="cute-button timer-btn">Reset</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="flashcards-content" class="tab-content hidden">
+                    <h2>Flashcards</h2>
+                    <div class="flashcard-folders-view">
+                        <button id="create-folder-btn" class="cute-button">Create New Folder</button>
+                        <h3>Your Folders</h3>
+                        <div id="folders-grid" class="folders-grid"></div>
+                    </div>
+
+                    <div class="flashcard-detail-view hidden">
+                        <button id="back-to-folders" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folders</button>
+                        <h3 id="current-folder-name">Folder: </h3>
+                        <div class="flashcard-actions">
+                            <button id="add-flashcard-btn" class="cute-button">Add Flashcard</button>
+                            <button id="start-timed-flip" class="cute-button">Start Timed Review</button>
+                            <button id="start-type-answer" class="cute-button">Start Type Answer Review</button>
+                        </div>
+                        <h4>Flashcards in this Folder:</h4>
+                        <div id="flashcards-list" class="flashcards-list"></div>
+                    </div>
+
+                    <div class="flashcard-review-timed-view hidden">
+                        <button id="back-from-timed-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
+                        <h3 id="timed-review-folder-name"></h3>
+                        <div id="timed-flashcard-display" class="flashcard-card">
+                            <div class="flashcard-front" id="timed-card-front"></div>
+                            <div class="flashcard-back" id="timed-card-back"></div>
+                        </div>
+                        <div class="review-buttons">
+                            <button id="next-timed-card" class="cute-button timer-btn">Next Card</button>
+                        </div>
+                    </div>
+
+                    <div class="flashcard-review-type-view hidden">
+                        <button id="back-from-type-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
+                        <h3 id="type-review-folder-name"></h3>
+                        <div id="type-flashcard-display" class="flashcard-card">
+                            <div class="flashcard-front" id="type-card-front"></div>
+                            <div class="flashcard-back" id="type-card-back" class="hidden"></div>
+                        </div>
+                        <input type="text" id="type-answer-input" placeholder="Type your answer here...">
+                        <p id="type-answer-feedback" class="feedback-message"></p>
+                        <div class="review-buttons">
+                            <button id="check-type-answer" class="cute-button timer-btn">Check Answer</button>
+                            <button id="reveal-type-answer" class="cute-button timer-btn">Reveal Answer</button>
+                            <button id="next-type-card" class="cute-button timer-btn">Next Card</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="notes-content" class="tab-content hidden">
+                    <h2>Notes</h2>
+                    <div class="notes-controls">
+                        <button id="create-notebook-btn" class="cute-button">Create New Notebook</button>
+                    </div>
+                    <h3>Your Notebooks</h3>
+                    <div id="notebooks-grid" class="notebooks-grid"></div>
+                </section>
+                
+                <section id="planner-content" class="tab-content hidden">
+                    <h2>Planner</h2>
+                    <div class="planner-controls">
+                        <button id="prev-month-btn" class="cute-button"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="calendar-month-year">Month Year</h3>
+                        <button id="next-month-btn" class="cute-button"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div id="calendar" class="calendar">
+                        <div class="calendar-header">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+                        <div class="calendar-days" id="calendar-days"></div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <aside class="right-sidebar">
+            <div class="right-sidebar-header">
+                <div class="user-profile">
+                    <img id="profile-pic" src="https://i.imgur.com/V4RclNb.png" alt="User PFP" class="pfp">
+                    <span class="right-sidebar-title">Welcome, <span id="username-display"></span>!</span>
+                </div>
+                <div class="right-sidebar-actions">
+                    <button id="logout-btn" class="cute-button-icon-only" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+                    <button id="right-sidebar-settings-btn" class="settings-btn cute-button-icon-only"><i class="fas fa-ellipsis-h"></i></button>
+                </div>
+            </div>
+
+            <div class="tasks-summary">
+                <div class="progress-circle-wrapper">
+                    <svg class="progress-ring" width="140" height="140">
+                        <circle class="progress-ring-circle" stroke-width="12" fill="transparent" r="64" cx="70" cy="70"/>
+                        <circle class="progress-ring-progress" stroke-width="12" fill="transparent" r="64" cx="70" cy="70"></circle>
+                    </svg>
+                    <div class="progress-text-overlay">
+                        <span id="progress-percentage">50%</span>
+                        <span id="progress-count">2/4</span>
+                        <span>Complete</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-clipboard-list stat-icon"></i>
+                        <span id="total-tasks-stat" class="stat-value">4</span>
+                        <span class="stat-label">Total Tasks</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-check-circle stat-icon stat-completed"></i>
+                        <span id="completed-tasks-stat" class="stat-value">2</span>
+                        <span class="stat-label">Completed</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upcoming-tasks">
+                <h4 class="upcoming-header">Due Tomorrow</h4>
+                <ul id="due-tomorrow-list" class="task-list">
+                </ul>
+                <h4 class="upcoming-header">Due in 7 Days</h4>
+                <ul id="due-7-days-list" class="task-list">
+                </ul>
+            </div>
+        </aside>
     </div>
-  </div>
-  <script src="js.js"></script>
+
+    <div id="settings-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3>Settings</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <div class="settings-option">
+            <label for="theme-toggle">Dark Mode:</label>
+            <label class="switch">
+                <input type="checkbox" id="theme-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+        <div class="settings-option">
+            <label for="pfp-url-input">Profile Picture URL:</label>
+             <input type="url" id="pfp-url-input" class="modal-input" placeholder="https://example.com/image.png">
+        </div>
+        <div class="modal-buttons">
+            <button id="save-settings-btn" class="cute-button">Save</button>
+        </div>
+    </div>
+
+    <div id="flashcard-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3 id="flashcard-modal-title">Add Flashcard</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <input type="text" id="flashcard-front" class="modal-input" placeholder="Front of Card">
+        <input type="text" id="flashcard-back" class="modal-input" placeholder="Back of Card">
+        <div class="modal-buttons">
+            <button id="save-flashcard-btn" class="cute-button">Save Flashcard</button>
+        </div>
+    </div>
+
+    <div id="subject-detail-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3 id="subject-detail-title"></h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <div class="subject-detail-nav">
+            <button class="cute-button subject-detail-tab-btn active" data-detail-tab="subject-tasks">Tasks</button>
+            <button class="cute-button subject-detail-tab-btn" data-detail-tab="subject-notebooks">Notebooks</button>
+            <button class="cute-button subject-detail-tab-btn" data-detail-tab="subject-flashcards">Flashcards</button>
+        </div>
+        <div class="subject-detail-content">
+            <div id="subject-tasks" class="detail-tab-content">
+                <h4>Tasks for this Subject:</h4>
+                <ul id="subject-tasks-list" class="task-list"></ul>
+                <p id="subject-tasks-empty" class="empty-message hidden">No tasks found for this subject.</p>
+            </div>
+            <div id="subject-notebooks" class="detail-tab-content hidden">
+                <h4>Notebooks for this Subject:</h4>
+                <div id="subject-notebooks-grid" class="notebooks-grid"></div>
+                 <p id="subject-notebooks-empty" class="empty-message hidden">No notebooks found for this subject.</p>
+            </div>
+            <div id="subject-flashcards" class="detail-tab-content hidden">
+                <h4>Flashcards for this Subject:</h4>
+                <div id="subject-flashcards-list" class="folders-grid"></div>
+                <p id="subject-flashcards-empty" class="empty-message hidden">No flashcards found for this subject.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-subject-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3 id="add-subject-modal-title">Add New Subject</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <input type="text" id="new-subject-name-input" class="modal-input" placeholder="Subject Name (e.g., Quantum Physics)">
+        <input type="number" id="new-subject-units-input" class="modal-input" placeholder="Number of Units (e.g., 3)">
+        <div class="modal-buttons">
+            <button id="save-new-subject-btn" class="cute-button">Save Subject</button>
+        </div>
+    </div>
+    
+    <div id="section-select-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3>Select Your Section</h3>
+        </div>
+        <p>Please select your section to access shared features. This can be changed later in settings.</p>
+        <select id="section-select-dropdown" class="modal-input"></select>
+        <div class="modal-buttons">
+            <button id="save-section-selection-btn" class="cute-button">Confirm</button>
+        </div>
+    </div>
+    
+    <div id="add-extracurricular-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3 id="add-extracurricular-modal-title">Add Activity</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <input type="text" id="extracurricular-name-input" class="modal-input" placeholder="Activity Name (e.g., Debate Club)">
+        <select id="extracurricular-category-select" class="modal-input">
+            <option value="Club">Club</option>
+            <option value="Organization">Organization</option>
+            <option value="Publication">Publication</option>
+            <option value="Club Officer">Club Officer</option>
+            <option value="Officer">Officer</option>
+        </select>
+        <input type="text" id="extracurricular-role-input" class="modal-input" placeholder="Your Role (e.g., President, Member)">
+        <div class="modal-buttons">
+            <button id="save-extracurricular-btn" class="cute-button">Save Activity</button>
+        </div>
+    </div>
+
+    <div id="add-section-task-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3>Add Task for Section</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <input type="text" id="section-task-name" class="modal-input" placeholder="Task Name">
+        <select id="section-task-subject" class="subject-select modal-input"></select>
+        <input type="text" id="section-task-type" class="modal-input" placeholder="Type (e.g., Quiz, Homework)">
+        <input type="text" id="section-task-source" class="modal-input" placeholder="Source (e.g., Google Classroom, KHub)">
+        <input type="date" id="section-task-due-date" class="modal-input">
+        <div class="modal-buttons">
+            <button id="save-section-task-btn" class="cute-button">Add to Shared List</button>
+        </div>
+    </div>
+
+    <div id="notebook-type-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3>Create New Notebook</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <p>What kind of notebook would you like to create?</p>
+        <div class="modal-buttons" style="justify-content: center; gap: 15px;">
+            <button id="create-text-notebook-btn" class="cute-button"><i class="fas fa-file-alt"></i> Text Notebook</button>
+        </div>
+    </div>
+
+    <div id="notebook-editor-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <input type="text" id="notebook-title-input" class="modal-input" placeholder="Notebook Title" style="flex-grow: 1;">
+            <select id="notebook-subject-select" class="subject-select modal-input" style="flex-basis: 200px;"></select>
+            <button id="save-notebook-btn" class="cute-button">Save</button>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <div id="text-editor-view" class="notebook-editor-view">
+            <div id="quill-editor-container" class="quill-editor-content"></div>
+        </div>
+    </div>
+
+    <div id="share-modal" class="modal-content hidden">
+        <div class="modal-header">
+            <h3 id="share-modal-title">Share Item</h3>
+            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+        </div>
+        <p>Enter the username of the user you want to share this with (read-only).</p>
+        <input type="text" id="share-username-input" class="modal-input" placeholder="Username">
+        <div class="modal-buttons">
+            <button id="execute-share-btn" class="cute-button">Share</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script src="js.js"></script>
 </body>
 </html>
-
