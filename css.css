@@ -1,91 +1,71 @@
 :root {
-   
-    --font-family-system: "Helvetica Neue", Helvetica, Arial, sans-serif;
-
-    
+    /* theme normal */
+    --accent-color: #E985A1; 
     --bg-color-primary: #f0f0f7; 
     --bg-color-secondary: #FFFFFF; 
-    --bg-color-darker: #f9f9fc; 
     --text-color-primary: #000000; 
+
+    /* normal static  */
+    --font-family-system: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --bg-color-darker: #f9f9fc; 
     --text-color-secondary: #8A8A8E; 
-    --accent-color: #E985A1; 
     --accent-color-dark: #CE6F8B;
     --border-color: #E6E6EB; 
     --shadow-color: rgba(0, 0, 0, 0.05); 
     --active-tab-bg: #FEE7ED;
-    --cute-button-bg: #E985A1;
+    --cute-button-bg: var(--accent-color);
     --cute-button-text: #FFFFFF;
     --reset-btn-bg: #FBB0C7; 
-    --progress-circle-bg: #E985A1; 
+    --progress-circle-bg: var(--accent-color); 
     --progress-circle-fill: #FDE2ED; 
     --error-color: #EF5350;
-
     --rs-header-bg: #FFF5F7; 
     --rs-task-card-bg: #FFFFFF;
     --rs-task-border: #F8E6EB; 
     --rs-task-text: #666666;
-    --rs-due-tomorrow-color: #E985A1; 
+    --rs-due-tomorrow-color: var(--accent-color); 
     --rs-due-7days-color: #7BB37D; 
 
-   
+    /* rgbbbb */
     --accent-color-rgb: 233, 133, 161;
     --cute-button-rgb: 233, 133, 161;
     --reset-btn-rgb: 251, 176, 199;
 
-
-   
     --pomodoro-bg-texture: radial-gradient(circle at 100% 150%, var(--bg-color-darker) 24%, var(--bg-color-secondary) 25%, var(--bg-color-secondary) 28%, var(--bg-color-darker) 29%, var(--bg-color-darker) 36%, var(--bg-color-secondary) 36%, var(--bg-color-secondary) 40%, rgba(var(--accent-color-rgb), 0) 40%, rgba(var(--accent-color-rgb), 0)) 0 0,
                          radial-gradient(circle at 0% 150%, var(--bg-color-darker) 24%, var(--bg-color-secondary) 25%, var(--bg-color-secondary) 28%, var(--bg-color-darker) 29%, var(--bg-color-darker) 36%, var(--bg-color-secondary) 36%, var(--bg-color-secondary) 40%, rgba(var(--accent-color-rgb), 0) 40%, rgba(var(--accent-color-rgb), 0)) 50px 50px,
                          radial-gradient(circle at 100% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 100px,
-                         radial-gradient(circle at 0% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 150px,
-                         radial-gradient(circle at 100% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 200px,
-                         radial-gradient(circle at 0% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 250px,
-                         radial-gradient(circle at 50% 100%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 0,
-                         radial-gradient(circle at 50% 0%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 50px;
+                         radial-gradient(circle at 0% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 150px;
     --pomodoro-bg-size: 100px 100px;
 }
 
 
 body.dark-mode {
+    /* dark mode colors */
+    --accent-color: #A36CCF; 
     --bg-color-primary: #000000; 
     --bg-color-secondary: #1C1C1E;
-    --bg-color-darker: #2C2C2E; 
     --text-color-primary: #FFFFFF;
+
+    /* static variables for dark mode */
+    --bg-color-darker: #2C2C2E; 
     --text-color-secondary: #8D8D93;
-    --accent-color: #A36CCF; 
     --accent-color-dark: #8E4EDF; 
     --border-color: #38383A; 
     --shadow-color: rgba(0, 0, 0, 0.4); 
     --active-tab-bg: #3A3E4D;
-    --cute-button-bg: #A36CCF;
-    --cute-button-text: #FFFFFF;
     --reset-btn-bg: #7B50D8;
-    --progress-circle-bg: #A36CCF;
     --progress-circle-fill: #5B40A3;
     --error-color: #E57373;
-
-   
     --rs-header-bg: #22252F;
     --rs-task-card-bg: #1C1C1E;
     --rs-task-border: #3A3E4D;
     --rs-task-text: #C0C0C0;
-    --rs-due-tomorrow-color: #A36CCF;
     --rs-due-7days-color: #8BC34A; 
 
-
+    /* rgb version */
     --accent-color-rgb: 163, 108, 207;
     --cute-button-rgb: 163, 108, 207;
     --reset-btn-rgb: 123, 80, 216;
-
-
-    --pomodoro-bg-texture: radial-gradient(circle at 100% 150%, var(--bg-color-darker) 24%, var(--bg-color-secondary) 25%, var(--bg-color-secondary) 28%, var(--bg-color-darker) 29%, var(--bg-color-darker) 36%, var(--bg-color-secondary) 36%, var(--bg-color-secondary) 40%, rgba(var(--accent-color-rgb), 0) 40%, rgba(var(--accent-color-rgb), 0)) 0 0,
-                         radial-gradient(circle at 0% 150%, var(--bg-color-darker) 24%, var(--bg-color-secondary) 25%, var(--bg-color-secondary) 28%, var(--bg-color-darker) 29%, var(--bg-color-darker) 36%, var(--bg-color-secondary) 36%, var(--bg-color-secondary) 40%, rgba(var(--accent-color-rgb), 0) 40%, rgba(var(--accent-color-rgb), 0)) 50px 50px,
-                         radial-gradient(circle at 100% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 100px,
-                         radial-gradient(circle at 0% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 150px,
-                         radial-gradient(circle at 100% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 200px,
-                         radial-gradient(circle at 0% 50%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 250px,
-                         radial-gradient(circle at 50% 100%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 0 0,
-                         radial-gradient(circle at 50% 0%, var(--bg-color-darker) 10%, var(--bg-color-secondary) 11%, var(--bg-color-secondary) 23%, var(--bg-color-darker) 24%, var(--bg-color-darker) 28%, var(--bg-color-secondary) 29%, var(--bg-color-secondary) 34%, rgba(var(--accent-color-rgb), 0) 34%, rgba(var(--accent-color-rgb), 0)) 50px 50px;
 }
 
 
@@ -104,6 +84,7 @@ body {
 
 h1, h2, h3, h4, strong {
     font-weight: 600; 
+    color: var(--text-color-primary);
 }
 
 .hidden {
@@ -168,7 +149,7 @@ h1, h2, h3, h4, strong {
     border-radius: 6px;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Align icon to the left */
+    justify-content: flex-start; /* icon 2 the left */
     transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
     outline: none; 
     font-family: var(--font-family-system);
@@ -176,10 +157,22 @@ h1, h2, h3, h4, strong {
     box-sizing: border-box;
 }
 
+.tab-btn:disabled {
+    color: var(--border-color);
+    cursor: not-allowed;
+    background: none !important;
+    box-shadow: none !important;
+}
+
+.tab-btn:disabled i {
+    color: var(--border-color) !important;
+}
+
+
 .tab-btn i {
     font-size: 1.5em; 
     color: var(--text-color-secondary); 
-    width: 46px; /* Width of the icon area */
+    width: 46px; /* iconnn */
     text-align: center;
     flex-shrink: 0;
 }
@@ -187,13 +180,13 @@ h1, h2, h3, h4, strong {
     margin-left: 10px;
     white-space: nowrap;
     opacity: 0;
-    transition: opacity 0.2s ease 0.1s; /* Delay opacity transition */
+    transition: opacity 0.2s ease 0.1s; /* opacity transition */
 }
 .left-sidebar:hover .sidebar-label {
     opacity: 1;
 }
 
-.tab-btn:hover {
+.tab-btn:hover:not(:disabled) {
     background-color: var(--border-color);
     color: var(--text-color-primary);
     box-shadow: 0 2px 4px var(--shadow-color);
@@ -282,14 +275,8 @@ h1, h2, h3, h4, strong {
     min-height: 180px; 
     position: relative; 
     font-family: var(--font-family-system);
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-body.dark-mode .dashboard-card {
-    background: rgba(44, 44, 46, 0.6); 
-    border: 1px solid rgba(56, 56, 58, 0.5); 
+    background: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .dashboard-card:hover {
@@ -311,12 +298,7 @@ body.dark-mode .dashboard-card {
     border-radius: 20px;
     font-size: 1.1em; 
     font-weight: 800; 
-    backdrop-filter: blur(5px); 
-    -webkit-backdrop-filter: blur(5px); 
     border: 1px solid rgba(var(--accent-color-rgb), 0.2);
-}
-body.dark-mode .dashboard-card .card-grade {
-    background-color: rgba(var(--accent-color-rgb), 0.2);
 }
 
 .dashboard-card h4 {
@@ -337,7 +319,6 @@ body.dark-mode .dashboard-card .card-grade {
     right: 15px;
     display: flex;
     gap: 5px;
-    background-color: rgba(var(--accent-color-rgb), 0.1);
     padding: 5px;
     border-radius: 20px;
     opacity: 0;
@@ -368,6 +349,7 @@ input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="date"],
+input[type="datetime-local"],
 input[type="time"],
 input[type="month"],
 input[type="url"],
@@ -542,7 +524,7 @@ body.dark-mode select {
     color: var(--accent-color);
     transform: scale(1.1);
 }
-.action-btn.delete-task-btn:hover, .action-btn.delete-grade-btn:hover {
+.action-btn.delete-task-btn:hover, .action-btn.delete-grade-btn:hover, .action-btn.delete-extracurricular-btn:hover {
     color: var(--reset-btn-bg);
 }
 
@@ -595,6 +577,11 @@ body.dark-mode select {
     font-style: italic;
     font-family: var(--font-family-system);
 }
+.empty-message a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: bold;
+}
 
 
 #pomodoro-content {
@@ -630,8 +617,6 @@ body.dark-mode select {
     border-radius: 12px;
     padding: 30px 40px;
     box-shadow: inset 0 0 10px rgba(var(--accent-color-rgb), 0.1), 0 8px 20px rgba(var(--accent-color-rgb), 0.2); /* Deeper shadows */
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
     width: 100%;
     max-width: 450px;
     margin: auto;
@@ -1065,10 +1050,8 @@ body.dark-mode select {
 
 
 .modal-content {
-    background: rgba(250, 250, 252, 0.75); 
-    backdrop-filter: blur(15px);
-    -webkit-backdrop-filter: blur(15px);
-    border: 1px solid rgba(230, 230, 235, 0.6);
+    background: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
     padding: 25px;
     border-radius: 16px;
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
@@ -1081,10 +1064,6 @@ body.dark-mode select {
     font-family: var(--font-family-system);
     display: flex;
     flex-direction: column;
-}
-body.dark-mode .modal-content {
-    background: rgba(44, 44, 46, 0.75); 
-    border: 1px solid rgba(56, 56, 58, 0.7); 
 }
 
 @keyframes fadeIn {
@@ -1198,7 +1177,7 @@ body.dark-mode .modal-content {
 
 
 #settings-modal {
-    max-width: 450px; /* Wider for URL input */
+    max-width: 450px;
     padding: 20px;
 }
 .settings-option {
@@ -1268,6 +1247,41 @@ input:checked + .slider:before {
     transform: translateX(20px); 
 }
 
+/* color picker style / FIX // error: not saving..  */
+.color-picker-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 10px;
+}
+.color-picker-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.color-picker-group label {
+    font-size: 1em;
+}
+input[type="color"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 40px;
+    height: 40px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+input[type="color"]::-moz-color-swatch {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
 
 .notes-controls {
     display: flex;
@@ -1319,10 +1333,7 @@ input:checked + .slider:before {
     color: var(--text-color-secondary);
     margin: 0;
 }
-.notebook-actions {
-    margin-top: auto; 
-    padding-top: 10px;
-}
+
 .flashcard-actions, .resource-actions {
     display: flex;
     justify-content: flex-end;
@@ -1333,7 +1344,7 @@ input:checked + .slider:before {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 30px;
-    min-height: 150px;
+    min-height: 200px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1352,6 +1363,7 @@ input:checked + .slider:before {
     position: absolute;
     width: 100%;
     height: 100%;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     display: flex;
     justify-content: center;
@@ -1385,21 +1397,7 @@ input:checked + .slider:before {
     box-shadow: 0 2px 5px rgba(var(--accent-color-rgb), 0.1);
     font-family: var(--font-family-system);
 }
-.flashcards-list .flashcard-item .flashcard-text {
-    flex-grow: 1;
-    margin-right: 10px;
-}
-.flashcard-review-timed-view .timer-display {
-    font-size: 1.5em;
-    margin-left: 15px;
-    color: var(--accent-color);
-}
-.timed-review-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 20px;
-}
+
 .review-buttons {
     display: flex;
     justify-content: center;
@@ -1417,11 +1415,12 @@ input:checked + .slider:before {
     text-align: center;
     margin-top: 5px;
     font-family: var(--font-family-system);
+    min-height: 1.2em;
 }
 .feedback-message.correct { color: #8BC34A; }
 .feedback-message.incorrect { color: #EF5350; }
 
-/* Planner / Calendar */
+/* planner thing // FIX (error: not showing right dates) */
 .planner-controls {
     display: flex;
     justify-content: space-between;
@@ -1486,10 +1485,6 @@ input:checked + .slider:before {
     text-overflow: ellipsis;
     cursor: pointer;
 }
-body.dark-mode .calendar-event {
-    background-color: var(--accent-color-dark);
-}
-
 
 
 .subject-detail-nav {
@@ -1519,37 +1514,14 @@ body.dark-mode .calendar-event {
 .subject-detail-tab-btn.active {
     color: var(--accent-color);
     border-color: var(--accent-color);
-    background-color: var(--bg-color-darker);
-    box-shadow: none; 
 }
-.subject-detail-content {
-    flex-grow: 1;
-    overflow-y: auto; 
-    padding-right: 10px; 
-}
-.detail-tab-content h4 {
-    color: var(--text-color-primary);
-    margin-top: 15px;
-    margin-bottom: 10px;
-    font-size: 1.2em;
-    font-family: var(--font-family-system);
+.detail-tab-content {
+    padding: 10px 0;
 }
 #subject-tasks-list li {
     background-color: var(--bg-color-darker);
     box-shadow: none;
     border: 1px solid var(--border-color);
-}
-#subject-tasks-list li .task-content {
-    flex-direction: row; 
-    justify-content: space-between;
-    width: 100%;
-}
-#subject-tasks-list li .task-course {
-    display: none; 
-}
-#subject-tasks-list li .task-date {
-    margin-left: 10px;
-    flex-shrink: 0;
 }
 #subject-notebooks-grid .notebook-card,
 #subject-flashcards-list .folder-card { 
@@ -1576,74 +1548,63 @@ body.dark-mode .calendar-event {
 }
 
 
-.schedule-grid {
-    display: grid;
-    grid-template-columns: 60px repeat(5, 1fr); 
-    grid-template-rows: 30px; 
-    gap: 2px;
-    background-color: var(--border-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-top: 20px;
-}
-.schedule-header, .schedule-times, .schedule-day, .schedule-time-slot, .schedule-class {
-    background-color: var(--bg-color-secondary);
-    padding: 5px;
-    text-align: center;
-    font-size: 0.9em;
-}
-.schedule-header {
-    font-weight: bold;
-    color: var(--accent-color);
-    background-color: var(--bg-color-darker);
-}
-.schedule-times {
+/* GRADE CALCU STYLE */
+.grade-calc-container {
     display: flex;
     flex-direction: column;
-    grid-column: 1 / 2;
-    grid-row: 2 / -1; 
+    gap: 25px;
 }
-.schedule-time-slot {
-    flex-grow: 1;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-color-secondary);
-    font-size: 0.8em;
+.grade-calc-setup {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
 }
-.schedule-day {
-    position: relative;
-    min-height: 500px;
+.grade-calc-setup label {
+    font-weight: 500;
 }
-.schedule-class {
-    position: absolute;
-    left: 2px;
-    right: 2px;
-    background-color: rgba(var(--accent-color-rgb), 0.2);
-    border: 1px solid var(--accent-color);
-    border-radius: 4px;
-    padding: 8px;
-    font-size: 0.85em;
-    overflow: hidden;
-    cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.2s;
+.grade-calc-setup select {
+    max-width: 300px;
+    margin-bottom: 0;
 }
-.schedule-class:hover {
-    background-color: rgba(var(--accent-color-rgb), 0.3);
-    box-shadow: 0 2px 5px var(--shadow-color);
+.grade-calc-components-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
 }
-.schedule-class strong {
-    display: block;
-    color: var(--text-color-primary);
+.grade-calc-component {
+    background-color: var(--bg-color-darker);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
 }
-.schedule-class span {
-    color: var(--text-color-secondary);
+.grade-calc-component legend {
+    font-weight: bold;
+    color: var(--accent-color);
+    padding: 0 10px;
+    margin-left: 10px;
 }
-.time-input-group {
+.grade-calc-score-row {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-bottom: 10px;
 }
-.time-input-group input { margin-bottom: 0; }
+.grade-calc-score-row label {
+    width: 30px;
+    text-align: right;
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+}
+.grade-calc-score-row input {
+    margin-bottom: 0;
+    text-align: center;
+    flex: 1;
+}
+#grade-calc-results .result-label {
+    font-size: 0.7em;
+    color: var(--text-color-secondary);
+}
 
 
 .extracurriculars-grid {
@@ -1658,12 +1619,20 @@ body.dark-mode .calendar-event {
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0 2px 8px var(--shadow-color);
-    cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    cursor: pointer;
 }
 .extracurricular-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 5px 15px var(--shadow-color);
+}
+.extracurricular-card .card-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    padding: 0;
 }
 .extracurricular-card h4 {
     margin: 0 0 5px 0;
@@ -1681,50 +1650,35 @@ body.dark-mode .calendar-event {
     color: var(--text-color-secondary);
 }
 
-
-.todo-header {
+/* EXTRACURRICULAR  */
+#extracurricular-detail-modal {
+    max-width: 600px;
+}
+.detail-add-form {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
 }
-.todo-view-switcher {
-    display: flex;
-    align-items: center;
-    background-color: var(--bg-color-darker);
-    border-radius: 8px;
-    padding: 4px;
-}
-
-.view-switch-btn {
-    padding: 6px 12px;
-    font-size: 0.9em;
-    background: none;
-    box-shadow: none;
-    color: var(--text-color-secondary);
-    transition: background-color 0.2s, color 0.2s;
-}
-.view-switch-btn.active {
-    background-color: var(--bg-color-secondary);
-    color: var(--accent-color);
-    box-shadow: 0 2px 5px var(--shadow-color);
-}
-#section-tasks-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--bg-color-darker);
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-#section-tasks-header p {
-    margin: 0;
+.detail-add-form input {
+    margin-bottom: 0;
     flex-grow: 1;
 }
+.detail-item-list {
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.detail-item-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-color-darker);
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
 
 @media (max-width: 1024px) {
     .right-sidebar {
@@ -1732,10 +1686,6 @@ body.dark-mode .calendar-event {
     }
     .main-content {
         padding: 20px;
-    }
-    .schedule-grid {
-        grid-template-columns: 50px repeat(5, 1fr);
-        font-size: 0.9em;
     }
 }
 
@@ -1760,13 +1710,13 @@ body.dark-mode .calendar-event {
         overflow-y: hidden;
     }
     .left-sidebar:hover {
-        width: 100%; /* No width change on hover for mobile */
+        width: 100%; /* no width change for modible */
     }
     .sidebar-logo {
         display: none;
     }
     .sidebar-label {
-        display: none; /* Hide labels on mobile */
+        display: none; /* no labels for mobie version */
     }
     .tabs-nav {
         flex-direction: row;
@@ -1841,22 +1791,4 @@ body.dark-mode .calendar-event {
         font-size: 0.8em;
     }
 
-    .schedule-grid {
-        display: block; 
-    }
-    .schedule-header, .schedule-times { display: none; } 
-    .schedule-day {
-        margin-bottom: 10px;
-        border: 1px solid var(--border-color);
-        padding: 10px;
-        border-radius: 8px;
-    }
-    .schedule-day::before {
-        content: attr(data-day);
-        font-weight: bold;
-        color: var(--accent-color);
-        display: block;
-        text-align: center;
-        margin-bottom: 10px;
-    }
 }

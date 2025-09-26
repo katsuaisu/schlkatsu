@@ -1,92 +1,144 @@
-
+/**
+ * =============================================================================
+ * AUTHENTICATION SERVICE (with Firebase)
+ * =============================================================================
+ */
 const AuthService = {
-    _users: JSON.parse(localStorage.getItem('schlkatsu_users')) || {},
-
-    signup(username, password, pfpUrl) {
-        if (this._users[username]) {
-            return { success: false, message: 'Username already exists.' };
+    async signup(email, password) {
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            const userDocRef = db.collection('users').doc(userCredential.user.uid);
+            await userDocRef.set({
+                pfp: 'https://i.imgur.com/V4RclNb.png', // Default PFP
+                email: email
+            });
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.message };
         }
-        this._users[username] = { 
-            password, 
-            pfp: pfpUrl || 'https://i.imgur.com/V4RclNb.png' 
-        };
-        localStorage.setItem('schlkatsu_users', JSON.stringify(this._users));
-        return { success: true };
     },
 
-    login(username, password) {
-        if (!this._users[username] || this._users[username].password !== password) {
-            return { success: false, message: 'Invalid username or password.' };
+    async login(email, password) {
+        try {
+            await auth.signInWithEmailAndPassword(email, password);
+            return { success: true };
+        } catch (error) {
+            return { success: false, message: error.message };
         }
-        sessionStorage.setItem('schlkatsu_currentUser', username);
-        return { success: true, username };
     },
 
     logout() {
-        sessionStorage.removeItem('schlkatsu_currentUser');
+        return auth.signOut();
     },
 
     getCurrentUser() {
-        return sessionStorage.getItem('schlkatsu_currentUser');
+        return auth.currentUser;
     },
     
-    getUserData(username) {
-        return this._users[username];
-    },
     
-    updateUserPfp(username, pfpUrl) {
-        if (this._users[username]) {
-            this._users[username].pfp = pfpUrl;
-            localStorage.setItem('schlkatsu_users', JSON.stringify(this._users));
-            return true;
+    async getUserPfp(userId) {
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+            return userDoc.data().pfp || 'https://i.imgur.com/V4RclNb.png';
         }
-        return false;
+        return 'https://i.imgur.com/V4RclNb.png';
     },
 
-    userExists(username) {
-        return !!this._users[username];
+    async updateUserPfp(userId, pfpUrl) {
+         if (!userId) return false;
+         await db.collection('users').doc(userId).set({ pfp: pfpUrl }, { merge: true });
+         return true;
     }
 };
-
+/**
+ * =============================================================================
+ * DATA SERVICE (with Firebase Firestore)
+ * =============================================================================
+ */
 const DataService = {
-    loadData(username) {
-        const data = localStorage.getItem(`schlkatsu_data_${username}`);
-        return data ? JSON.parse(data) : null;
+    async loadData(userId) {
+        if (!userId) return null;
+        try {
+            
+            const docRef = db.collection('users').doc(userId);
+            const doc = await docRef.get();
+            if (doc.exists) {
+                
+                return doc.data().appData || null; 
+            } else {
+                console.log("No data document for this user yet.");
+                return null;
+            }
+        } catch (error) {
+            console.error("Error loading data: ", error);
+            return null;
+        }
     },
 
-    saveData(username, data) {
-        if (!username) return;
-        localStorage.setItem(`schlkatsu_data_${username}`, JSON.stringify(data));
+    async saveData(userId, data) {
+        if (!userId) return;
+        try {
+            
+            const docRef = db.collection('users').doc(userId);
+            
+          
+            await docRef.set({ appData: data }, { merge: true });
+        } catch (error) {
+            console.error("Error saving data: ", error);
+        }
     }
 };
 
 
+/**
+ * =============================================================================
+ * MORE CONSTANT / LOCAL STUFF
+ * =============================================================================
+ */
 let currentUser = null;
 let subjects = [];
 let tasks = [];
 let flashcardFolders = [];
 let notebooks = [];
-let schedule = [];
 let extracurriculars = [];
-let theme = 'light'; 
+let theme = 'light';
+let themeColors = {};
 
 const gradesDropdownOptions = ["1.00", "1.25", "1.50", "1.75", "2.00", "2.25", "2.50", "2.75", "3.00", "4.00", "5.00"];
 const gradesOptionsNumeric = gradesDropdownOptions.map(g => parseFloat(g));
+
+const GRADE_COMPONENTS = {
+    'Chemistry': { 'Quiz / FA': 0.25, 'LT / SA': 0.35, 'AA / LA': 0.40 },
+    'Physics': { 'Quiz / FA': 0.25, 'AA': 0.25, 'LT1': 0.25, 'LT2': 0.25 },
+    'Biology': { 'Final LT': 0.25, 'LT1, LT2, Quiz / FA': 0.30, 'LA': 0.25, 'AA': 0.20 },
+    'Math': { 'Quiz / FA': 0.25, 'SW and HW': 0.05, 'LT1': 0.25, 'LT2': 0.25, 'AA': 0.20 },
+    'Statistics': { 'Quiz / FA': 0.20, 'Mini Tasks': 0.05, 'LA': 0.25, 'Project': 0.25, 'LT': 0.25 },
+    'Socsci': { 'Quiz / FA': 0.25, 'LT': 0.35, 'AA': 0.40 },
+    'English': { 'Quiz / FA': 0.25, 'LT': 0.35, 'AA': 0.40 },
+    'Filipino': { 'Quiz / FA': 0.25, 'LT': 0.35, 'AA': 0.40 }
+};
+
 let currentActiveTab = 'dashboard-content';
 let currentFlashcardFolder = null;
 let currentCardIndex = 0;
-let timedReviewInterval;
-let timedFlipInterval;
-let typeAnswerCard;
 let currentNotebook = null;
-let currentNotebookPageIndex = 0;
 let quillEditor = null;
 let plannerDate = new Date();
-let currentlyEditingSubject = null; 
+let currentlyEditingSubject = null;
+let currentlyEditingExtracurricularId = null;
 let itemToShare = { id: null, type: null };
+let pomodoro = {
+    timerId: null,
+    timeLeft: 25 * 60,
+    isPaused: true,
+    defaultTime: 25 * 60
+};
 
-
-
+/**
+ * =============================================================================
+ * CONSTANT VARIABALLS
+ * =============================================================================
+ */
 const appContainer = document.querySelector('.app-container');
 const modalOverlay = document.getElementById('modal-overlay');
 
@@ -95,28 +147,27 @@ const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const showSignupBtn = document.getElementById('show-signup');
 const showLoginBtn = document.getElementById('show-login');
+const continueGuestBtn = document.getElementById('continue-guest');
 const loginError = document.getElementById('login-error');
 const signupError = document.getElementById('signup-error');
 const usernameDisplay = document.getElementById('username-display');
 const logoutBtn = document.getElementById('logout-btn');
 const profilePic = document.getElementById('profile-pic');
-
+const rightSidebar = document.querySelector('.right-sidebar');
+const mainContent = document.querySelector('.main-content');
+const gwaGuestMessage = document.getElementById('gwa-guest-message');
 const shareModal = document.getElementById('share-modal');
 const shareUsernameInput = document.getElementById('share-username-input');
 const executeShareBtn = document.getElementById('execute-share-btn');
-
 const settingsModal = document.getElementById('settings-modal');
 const rightSidebarSettingsBtn = document.getElementById('right-sidebar-settings-btn');
 const themeToggleSwitch = document.getElementById('theme-toggle');
 const pfpUrlInput = document.getElementById('pfp-url-input');
 const saveSettingsBtn = document.getElementById('save-settings-btn');
-
 const flashcardModal = document.getElementById('flashcard-modal');
 const flashcardFrontInput = document.getElementById('flashcard-front');
 const flashcardBackInput = document.getElementById('flashcard-back');
-const flashcardSubjectSelect = document.getElementById('flashcard-subject-select');
 const saveFlashcardBtn = document.getElementById('save-flashcard-btn');
-
 const subjectDetailModal = document.getElementById('subject-detail-modal');
 const subjectDetailTitle = document.getElementById('subject-detail-title');
 const subjectDetailTabBtns = subjectDetailModal.querySelectorAll('.subject-detail-tab-btn');
@@ -124,101 +175,158 @@ const subjectDetailContents = subjectDetailModal.querySelectorAll('.detail-tab-c
 const subjectTasksList = document.getElementById('subject-tasks-list');
 const subjectNotebooksGrid = document.getElementById('subject-notebooks-grid');
 const subjectFlashcardsList = document.getElementById('subject-flashcards-list');
-
 const addSubjectModal = document.getElementById('add-subject-modal');
 const addSubjectModalTitle = document.getElementById('add-subject-modal-title');
 const newSubjectNameInput = document.getElementById('new-subject-name-input');
-const newSubjectUnitsInput = document.getElementById('new-subject-units-input');
 const saveNewSubjectBtn = document.getElementById('save-new-subject-btn');
-
-
 const createNotebookBtn = document.getElementById('create-notebook-btn');
 const notebookTypeModal = document.getElementById('notebook-type-modal');
 const createTextNotebookBtn = document.getElementById('create-text-notebook-btn');
-const createDrawingNotebookBtn = document.getElementById('create-drawing-notebook-btn');
 const notebookEditorModal = document.getElementById('notebook-editor-modal');
 const notebookTitleInput = document.getElementById('notebook-title-input');
 const notebookSubjectSelect = document.getElementById('notebook-subject-select');
 const saveNotebookBtn = document.getElementById('save-notebook-btn');
 const textEditorView = document.getElementById('text-editor-view');
-
+const addExtracurricularModal = document.getElementById('add-extracurricular-modal');
+const extracurricularDetailModal = document.getElementById('extracurricular-detail-modal');
 const dashboardSubjectsGrid = document.getElementById('dashboard-subjects-grid');
-
 const gwaDisplay = document.getElementById('gwa-display');
 const gwaBody = document.getElementById('gwa-body');
-
-
+const gradeCalcSubjectSelect = document.getElementById('grade-calc-subject-select');
+const gradeCalcComponentsGrid = document.getElementById('grade-calc-components');
+const gradeCalcResults = document.getElementById('grade-calc-results');
 const calendarDays = document.getElementById('calendar-days');
 const calendarMonthYear = document.getElementById('calendar-month-year');
 const prevMonthBtn = document.getElementById('prev-month-btn');
 const nextMonthBtn = document.getElementById('next-month-btn');
-
-
-const addClassScheduleBtn = document.getElementById('add-class-schedule-btn');
 const addExtracurricularBtn = document.getElementById('add-extracurricular-btn');
-const scheduleGrid = document.getElementById('schedule-grid');
 const extracurricularsGrid = document.getElementById('extracurriculars-grid');
+const saveExtracurricularBtn = document.getElementById('save-extracurricular-btn');
+const pomodoroMinutes = document.getElementById('minutes');
+const pomodoroSeconds = document.getElementById('seconds');
+const startTimerBtn = document.getElementById('start-timer');
+const pauseTimerBtn = document.getElementById('pause-timer');
+const resetTimerBtn = document.getElementById('reset-timer');
+const pomodoroTaskSelect = document.getElementById('task-select');
+const pomodoroCurrentTask = document.getElementById('current-task');
+const customMinutesInput = document.getElementById('custom-minutes');
+const startTimedFlipBtn = document.getElementById('start-timed-flip');
+const startTypeAnswerBtn = document.getElementById('start-type-answer');
+const timedFlashcardDisplay = document.getElementById('timed-flashcard-display');
+const timedCardFront = document.getElementById('timed-card-front');
+const timedCardBack = document.getElementById('timed-card-back');
+const prevTimedCardBtn = document.getElementById('prev-timed-card');
+const flipTimedCardBtn = document.getElementById('flip-timed-card');
+const nextTimedCardBtn = document.getElementById('next-timed-card');
+const typeFlashcardDisplay = document.getElementById('type-flashcard-display');
+const typeCardFront = document.getElementById('type-card-front');
+const typeCardBack = document.getElementById('type-card-back');
+const typeAnswerInput = document.getElementById('type-answer-input');
+const typeAnswerFeedback = document.getElementById('type-answer-feedback');
+const checkTypeAnswerBtn = document.getElementById('check-type-answer');
+const revealTypeAnswerBtn = document.getElementById('reveal-type-answer');
+const nextTypeCardBtn = document.getElementById('next-type-card');
 
+/**
+ * =============================================================================
+ * CORE STUFF
+ * =============================================================================
+ */
 
-
-
-function saveAllData() {
+function saveAllData(options = {}) {
     const dataToSave = {
         subjects,
         tasks,
         flashcardFolders,
         notebooks,
-        schedule,
         extracurriculars,
         theme,
+        themeColors
     };
-    DataService.saveData(currentUser, dataToSave);
-    
-    renderRightSidebarTasks();
-    if(currentActiveTab === 'planner-content') renderCalendar();
-    if(currentActiveTab === 'dashboard-content') renderDashboard();
-    updateProgressCircle();
-}
-
-function loadUserData(username) {
-    const data = DataService.loadData(username);
-    const userData = AuthService.getUserData(username);
-
-    subjects = (data && Array.isArray(data.subjects)) ? data.subjects : [];
-    subjects.forEach(s => {
-        s.previousGrade = s.previousGrade || null;
-        s.currentGrade = s.currentGrade || null;
-    });
-
-    tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
-    flashcardFolders = (data && Array.isArray(data.flashcardFolders)) ? data.flashcardFolders : [];
-    notebooks = (data && Array.isArray(data.notebooks)) ? data.notebooks : [];
-    schedule = (data && Array.isArray(data.schedule)) ? data.schedule : [];
-    extracurriculars = (data && Array.isArray(data.extracurriculars)) ? data.extracurriculars : [];
-    theme = (data && typeof data.theme === 'string') ? data.theme : 'light';
-    
-    if (userData) {
-        profilePic.src = userData.pfp || 'https://i.imgur.com/V4RclNb.png';
-        pfpUrlInput.value = userData.pfp || '';
-    }
-    
-    
-    if (subjects.length === 0) {
-        const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino", "PEHM"];
-        subjects = defaultSubjectNames.map(name => ({
-            name: name,
-            units: 3,
-            grade: null,
-            previousGrade: null,
-            currentGrade: null
-        }));
+    if (currentUser !== 'guest') {
+        DataService.saveData(currentUser, dataToSave);
     }
 
-    saveAllData(); 
+   
+    if (!options.skipRender) {
+        renderRightSidebarTasks();
+        updateProgressCircle();
+ 
+        if (currentActiveTab === 'planner-content') renderCalendar();
+        if (currentActiveTab === 'dashboard-content') renderDashboard();
+        if (currentActiveTab === 'gwa-content') renderGwaCalculator();
+    }
 }
 
 
+/**
+ * =============================================================================
+ * EVENT LISTENERS: AUTHENTICATION
+ * i think i hate firebase
+ * =============================================================================
+ */
 
+
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.classList.add('hidden');
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    const result = await AuthService.login(email, password);
+    if (!result.success) {
+        loginError.textContent = result.message;
+        loginError.classList.remove('hidden');
+    }
+   
+});
+
+
+signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    signupError.classList.add('hidden');
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+
+    const result = await AuthService.signup(email, password);
+    if (!result.success) {
+        signupError.textContent = result.message;
+        signupError.classList.remove('hidden');
+    }
+    
+});
+
+
+logoutBtn.addEventListener('click', () => {
+    AuthService.logout();
+});
+
+
+showSignupBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    loginForm.classList.add('hidden');
+    signupForm.classList.remove('hidden');
+});
+
+showLoginBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    signupForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+});
+
+
+continueGuestBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    enterGuestMode();
+});
+
+
+
+/**
+ * =============================================================================
+ * FUNCTION: UI STUFF 
+ * =============================================================================
+ */
 
 function escapeHTML(str) {
     if (typeof str !== 'string') return '';
@@ -271,7 +379,7 @@ function showDueTodayNotification() {
     if (dueTodayTasks.length > 0) {
         const taskList = dueTodayTasks.map(task => `<li><strong>${escapeHTML(task.name)}</strong> (${escapeHTML(task.subject)})</li>`).join('');
         const message = `You have the following task(s) due today:<ul>${taskList}</ul>`;
-        
+
         closeAllModals();
         modalOverlay.innerHTML = '';
         modalOverlay.classList.remove('hidden');
@@ -303,7 +411,6 @@ function showDueTodayNotification() {
         document.getElementById('notif-ok-btn').addEventListener('click', closeNotification);
     }
 }
-
 
 function showCustomConfirm(message, onConfirm) {
     closeAllModals();
@@ -360,28 +467,54 @@ function populateSubjectDropdowns() {
 function switchTab(tabId) {
     document.querySelector('.tab-btn.active')?.classList.remove('active');
     document.getElementById(currentActiveTab)?.classList.add('hidden');
-    
-    document.querySelector(`.tab-btn[data-tab="${tabId}"]`)?.classList.add('active');
-    document.getElementById(tabId)?.classList.remove('hidden');
-    
+
+    const newTabButton = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    if (newTabButton) newTabButton.classList.add('active');
+
+    const newTabContent = document.getElementById(tabId);
+    if (newTabContent) newTabContent.classList.remove('hidden');
+
     currentActiveTab = tabId;
 
     if (tabId === 'dashboard-content') renderDashboard();
     else if (tabId === 'todo-content') renderTasks();
     else if (tabId === 'gwa-content') renderGwaCalculator();
+    else if (tabId === 'grade-calc-content') setupGradeCalculator();
+    else if (tabId === 'extracurriculars-content') renderExtracurriculars();
     else if (tabId === 'pomodoro-content') updatePomodoroTasks();
     else if (tabId === 'flashcards-content') showFlashcardFoldersView();
     else if (tabId === 'notes-content') renderNotebooks();
     else if (tabId === 'planner-content') renderCalendar();
-    else if (tabId === 'schedule-content') renderSchedule();
-    else if (tabId === 'extracurriculars-content') renderExtracurriculars();
 }
 
 function applyTheme(newTheme) {
     theme = newTheme;
     document.body.classList.toggle('dark-mode', theme === 'dark');
     themeToggleSwitch.checked = (theme === 'dark');
+    applyCustomColors();
 }
+
+function applyCustomColors() {
+    const colors = themeColors[theme] || {};
+    const root = document.documentElement;
+    const colorVars = ['--accent-color', '--bg-color-primary', '--bg-color-secondary', '--text-color-primary'];
+
+    colorVars.forEach(v => {
+        if (colors[v]) {
+            root.style.setProperty(v, colors[v]);
+        } else {
+            root.style.removeProperty(v);
+        }
+    });
+
+    const settingsColorPickers = settingsModal.querySelectorAll('input[type="color"]');
+    settingsColorPickers.forEach(picker => {
+        const varName = picker.dataset.var;
+        const currentVal = getComputedStyle(root).getPropertyValue(varName).trim();
+        picker.value = colors[varName] || currentVal;
+    });
+}
+
 
 function closeAllModals() {
     document.querySelectorAll('#modal-overlay > .modal-content').forEach(modal => {
@@ -391,14 +524,13 @@ function closeAllModals() {
     currentNotebook = null;
     modalOverlay.classList.add('hidden');
     appContainer.classList.remove('blurred');
-    currentlyEditingSubject = null; 
+    currentlyEditingSubject = null;
+    currentlyEditingExtracurricularId = null;
 }
-
-
 
 function showAuthModal() {
     modalOverlay.classList.remove('hidden');
-    modalOverlay.innerHTML = ''; 
+    modalOverlay.innerHTML = '';
     modalOverlay.appendChild(authModal);
     authModal.classList.remove('hidden');
     appContainer.classList.add('blurred');
@@ -410,13 +542,100 @@ function hideAuthModal() {
     appContainer.classList.remove('blurred');
 }
 
-function initializeApp(username) {
-    currentUser = username;
+/**
+ * =============================================================================
+ * FUNCTION: GUEST MODE
+ * =============================================================================
+ */
+
+function enterGuestMode() {
+    currentUser = 'guest';
     hideAuthModal();
-    loadUserData(username);
+
+    // only allow gwa calculator if ur a guest basically 
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.disabled = (btn.dataset.tab !== 'gwa-content');
+    });
+
+    rightSidebar.classList.add('hidden');
+    mainContent.style.width = 'calc(100% - 70px)';
+    mainContent.style.marginLeft = '70px';
+
+    const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino"];
+    subjects = defaultSubjectNames.map(name => ({
+        name: name,
+        units: 1,
+        grade: null,
+        previousGrade: null,
+        currentGrade: null
+    }));
+
+    switchTab('gwa-content');
+
+    gwaGuestMessage.classList.remove('hidden');
+    document.getElementById('login-from-guest').addEventListener('click', () => window.location.reload());
+    document.getElementById('signup-from-guest').addEventListener('click', () => window.location.reload());
+}
+
+async function initializeApp(user) {
+
+    currentUser = user.uid;
+    hideAuthModal();
+
+ 
+    const [savedData, pfp] = await Promise.all([
+        DataService.loadData(user.uid),
+        AuthService.getUserPfp(user.uid)
+    ]);
+
+
+    subjects = (savedData && Array.isArray(savedData.subjects)) ? savedData.subjects : [];
+    subjects.forEach(s => {
+        s.units = s.units || 1;
+        s.previousGrade = s.previousGrade !== undefined ? s.previousGrade : null;
+        s.currentGrade = s.currentGrade !== undefined ? s.currentGrade : null;
+        s.detailedGrades = s.detailedGrades || {};
+    });
+
+    tasks = (savedData && Array.isArray(savedData.tasks)) ? savedData.tasks : [];
+    flashcardFolders = (savedData && Array.isArray(savedData.flashcardFolders)) ? savedData.flashcardFolders : [];
+    notebooks = (savedData && Array.isArray(savedData.notebooks)) ? savedData.notebooks : [];
+    extracurriculars = (savedData && Array.isArray(savedData.extracurriculars)) ? savedData.extracurriculars : [];
+     extracurriculars.forEach(e => {
+        e.meetings = e.meetings || [];
+        e.projects = e.projects || [];
+        e.tasks = e.tasks || [];
+    });
     
-    usernameDisplay.textContent = username;
+    theme = (savedData && typeof savedData.theme === 'string') ? savedData.theme : 'light';
+    themeColors = (savedData && typeof savedData.themeColors === 'object') ? savedData.themeColors : {};
+
+   
+    if (subjects.length === 0) {
+        const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino"];
+        subjects = defaultSubjectNames.map(name => ({
+            name: name,
+            units: 1,
+            grade: null,
+            previousGrade: null,
+            currentGrade: null,
+            detailedGrades: {}
+        }));
+        saveAllData(); 
+    }
+
+
+    usernameDisplay.textContent = user.email; // Use email from the Firebase user object
+    profilePic.src = pfp;
+    pfpUrlInput.value = pfp;
+
     applyTheme(theme);
+    applyCustomColors();
+    rightSidebar.classList.remove('hidden');
+    mainContent.style.width = '';
+    mainContent.style.marginLeft = '';
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.disabled = false);
+
 
     populateSubjectDropdowns();
     switchTab('dashboard-content');
@@ -424,117 +643,28 @@ function initializeApp(username) {
     showDueTodayNotification();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    const user = AuthService.getCurrentUser();
+
+auth.onAuthStateChanged(async user => {
     if (user) {
-        initializeApp(user);
+     
+        console.log("User is logged in:", user.uid);
+        
+    
+        await initializeApp(user); 
+        
     } else {
+      
+        console.log("User is logged out.");
+        currentUser = null;
         showAuthModal();
     }
-    
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('login-username').value;
-        const password = document.getElementById('login-password').value;
-        const result = AuthService.login(username, password);
-        if (result.success) {
-            initializeApp(result.username);
-        } else {
-            loginError.textContent = result.message;
-            loginError.classList.remove('hidden');
-        }
-    });
-
-    signupForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('signup-username').value;
-        const password = document.getElementById('signup-password').value;
-        const pfpUrl = document.getElementById('signup-pfp').value;
-        const result = AuthService.signup(username, password, pfpUrl);
-        if (result.success) {
-            const loginResult = AuthService.login(username, password);
-            if(loginResult.success) {
-                initializeApp(loginResult.username);
-            }
-        } else {
-            signupError.textContent = result.message;
-            signupError.classList.remove('hidden');
-        }
-    });
-
-    showSignupBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginForm.classList.add('hidden');
-        signupForm.classList.remove('hidden');
-        loginError.classList.add('hidden');
-    });
-
-    showLoginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        signupForm.classList.add('hidden');
-        loginForm.classList.remove('hidden');
-        signupError.classList.add('hidden');
-    });
-
-    logoutBtn.addEventListener('click', () => {
-        showCustomConfirm("Are you sure you want to logout?", () => {
-            AuthService.logout();
-            currentUser = null;
-            window.location.reload();
-        });
-    });
-
-    themeToggleSwitch.addEventListener('change', (e) => {
-        applyTheme(e.target.checked ? 'dark' : 'light');
-        saveAllData();
-    });
-    
-    saveSettingsBtn.addEventListener('click', () => {
-        const newPfpUrl = pfpUrlInput.value.trim();
-        if (newPfpUrl) {
-            profilePic.src = newPfpUrl;
-            AuthService.updateUserPfp(currentUser, newPfpUrl);
-        }
-        applyTheme(themeToggleSwitch.checked ? 'dark' : 'light');
-        saveAllData();
-        showCustomAlert("Settings saved!");
-        closeAllModals();
-    });
-
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) closeAllModals();
-    });
-
-    document.querySelectorAll('.modal-close-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeAllModals();
-        });
-    });
-
-    document.querySelectorAll('.tab-btn').forEach(button => {
-        button.addEventListener('click', () => switchTab(button.dataset.tab));
-    });
-
-    createNotebookBtn.addEventListener('click', () => {
-        closeAllModals();
-        modalOverlay.classList.remove('hidden');
-        modalOverlay.appendChild(notebookTypeModal);
-        notebookTypeModal.classList.remove('hidden');
-    });
-
-    createTextNotebookBtn.addEventListener('click', () => createNewNotebook('text'));
-    createDrawingNotebookBtn.addEventListener('click', () => createNewNotebook('drawing'));
-    
-    executeShareBtn.addEventListener('click', handleExecuteShare);
-    
-  
-    addClassScheduleBtn.addEventListener('click', () => console.log("Add Class clicked"));
-    addExtracurricularBtn.addEventListener('click', () => console.log("Add Activity clicked"));
 });
 
-
-
+/**
+ * =============================================================================
+ * FUNCTION: SHARING (fix: literally nothing here works KEK)
+ * =============================================================================
+ */
 
 function openShareModal(id, type) {
     itemToShare = { id, type };
@@ -553,19 +683,19 @@ function handleExecuteShare() {
     if (targetUsername === currentUser) return showCustomAlert("You cannot share an item with yourself.", "alert");
     if (!AuthService.userExists(targetUsername)) return showCustomAlert(`User "${escapeHTML(targetUsername)}" does not exist.`, "alert");
 
-    const targetUserData = DataService.loadData(targetUsername) || { subjects: [], tasks: [], flashcardFolders: [], notebooks: [], theme: 'light' };
+    const targetUserData = DataService.loadData(targetUsername) || { subjects: [], tasks: [], flashcardFolders: [], notebooks: [], theme: 'light', extracurriculars: [] };
     let itemCopy;
 
     if (itemToShare.type === 'notebook') {
         const originalItem = notebooks.find(n => n.id === itemToShare.id);
         if (!originalItem) return showCustomAlert("Notebook not found.", "alert");
         if (targetUserData.notebooks.some(n => n.originalId === originalItem.id)) return showCustomAlert(`This notebook has already been shared with ${escapeHTML(targetUsername)}.`, "alert");
-        
+
         itemCopy = JSON.parse(JSON.stringify(originalItem));
         itemCopy.isShared = true;
         itemCopy.sharedBy = currentUser;
-        itemCopy.originalId = originalItem.id; 
-        itemCopy.id = Date.now(); 
+        itemCopy.originalId = originalItem.id;
+        itemCopy.id = Date.now();
         targetUserData.notebooks.push(itemCopy);
 
     } else if (itemToShare.type === 'flashcardFolder') {
@@ -589,7 +719,7 @@ function handleExecuteShare() {
         itemCopy.sharedBy = currentUser;
         itemCopy.originalId = originalItem.id;
         itemCopy.id = Date.now();
-        itemCopy.done = false; 
+        itemCopy.done = false;
         targetUserData.tasks.push(itemCopy);
     }
 
@@ -598,16 +728,18 @@ function handleExecuteShare() {
     closeAllModals();
 }
 
-
-
+/**
+ * =============================================================================
+ * FUNCTION: SUBJECT MANAGEMENT ( no need for fix... )
+ * =============================================================================
+ */
 function openAddSubjectModal() {
     closeAllModals();
     currentlyEditingSubject = null;
     addSubjectModalTitle.textContent = "Add New Subject";
     saveNewSubjectBtn.textContent = "Add Subject";
     newSubjectNameInput.value = '';
-    newSubjectUnitsInput.value = '';
-    
+
     modalOverlay.classList.remove('hidden');
     modalOverlay.appendChild(addSubjectModal);
     addSubjectModal.classList.remove('hidden');
@@ -619,11 +751,10 @@ function openEditSubjectModal(subjectName) {
     if (!subject) return;
 
     closeAllModals();
-    currentlyEditingSubject = subjectName; 
+    currentlyEditingSubject = subjectName;
     addSubjectModalTitle.textContent = "Edit Subject";
     saveNewSubjectBtn.textContent = "Save Changes";
     newSubjectNameInput.value = subjectName;
-    newSubjectUnitsInput.value = subject.units;
 
     modalOverlay.classList.remove('hidden');
     modalOverlay.appendChild(addSubjectModal);
@@ -637,7 +768,7 @@ function handleDeleteSubject(subjectName) {
         tasks = tasks.filter(t => t.subject !== subjectName);
         notebooks = notebooks.filter(n => n.subject !== subjectName);
         flashcardFolders = flashcardFolders.filter(f => f.subject !== subjectName);
-        
+
         saveAllData();
         populateSubjectDropdowns();
         renderDashboard();
@@ -649,11 +780,9 @@ document.getElementById('add-new-subject-dashboard').addEventListener('click', o
 
 saveNewSubjectBtn.addEventListener('click', () => {
     const newName = newSubjectNameInput.value.trim();
-    const newUnits = parseFloat(newSubjectUnitsInput.value);
 
     if (!newName) return showCustomAlert('Subject name cannot be empty!', 'alert');
-    if (isNaN(newUnits) || newUnits <= 0) return showCustomAlert('Please enter a valid number of units!', 'alert');
-    
+
     const isNameTaken = subjects.some(s => s.name.toLowerCase() === newName.toLowerCase() && s.name.toLowerCase() !== (currentlyEditingSubject || '').toLowerCase());
     if (isNameTaken) return showCustomAlert('A subject with this name already exists!', 'alert');
 
@@ -662,7 +791,6 @@ saveNewSubjectBtn.addEventListener('click', () => {
         if (subjectIndex > -1) {
             const oldName = subjects[subjectIndex].name;
             subjects[subjectIndex].name = newName;
-            subjects[subjectIndex].units = newUnits;
 
             tasks.forEach(t => { if (t.subject === oldName) t.subject = newName; });
             notebooks.forEach(n => { if (n.subject === oldName) n.subject = newName; });
@@ -673,10 +801,11 @@ saveNewSubjectBtn.addEventListener('click', () => {
     } else {
         subjects.push({
             name: newName,
-            units: newUnits,
+            units: 1,
             grade: null,
             previousGrade: null,
-            currentGrade: null
+            currentGrade: null,
+            detailedGrades: {}
         });
         showCustomAlert(`Subject "${newName}" added!`);
     }
@@ -690,7 +819,11 @@ saveNewSubjectBtn.addEventListener('click', () => {
 });
 
 
-
+/**
+ * =============================================================================
+ * FUNCTION: DASHBOARD (no need for fixing...probs)
+ * =============================================================================
+ */
 function renderDashboard() {
     dashboardSubjectsGrid.innerHTML = '';
     if (subjects.length === 0) {
@@ -701,7 +834,7 @@ function renderDashboard() {
         const card = document.createElement('div');
         card.className = 'dashboard-card';
         const gradeText = subject.grade ? subject.grade.toFixed(2) : 'N/A';
-        
+
         const taskCount = tasks.filter(t => t.subject === subject.name).length;
         const notebookCount = notebooks.filter(n => n.subject === subject.name).length;
         const flashcardCount = flashcardFolders.filter(f => f.subject === subject.name).length;
@@ -722,7 +855,12 @@ function renderDashboard() {
                 <button class="delete-subject-btn cute-button-icon-only" title="Delete Subject"><i class="fas fa-trash"></i></button>
             </div>
         `;
-        card.querySelector('.dashboard-card-main').addEventListener('click', () => openSubjectDetail(subject.name));
+
+     
+        
+        card.addEventListener('click', () => openSubjectDetail(subject.name));
+        
+        
         card.querySelector('.edit-subject-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             openEditSubjectModal(subject.name);
@@ -731,6 +869,7 @@ function renderDashboard() {
             e.stopPropagation();
             handleDeleteSubject(subject.name);
         });
+        
 
         dashboardSubjectsGrid.appendChild(card);
     });
@@ -738,9 +877,9 @@ function renderDashboard() {
 
 function openSubjectDetail(subjectName) {
     closeAllModals();
-    subjectDetailModal.classList.remove('hidden');
     modalOverlay.classList.remove('hidden');
     modalOverlay.appendChild(subjectDetailModal);
+    subjectDetailModal.classList.remove('hidden');
     subjectDetailTitle.textContent = subjectName;
     subjectDetailTabBtns.forEach(btn => btn.classList.remove('active'));
     subjectDetailContents.forEach(content => content.classList.add('hidden'));
@@ -795,9 +934,12 @@ function renderSubjectDetailContent(subjectName, tabId) {
     }
 }
 
-
-
-
+/**
+ * =============================================================================
+ * FUNCTION: SIDEBAR RIGHT SIDE
+ * this works pa naman, don't fix it yet until u want a diff ui 
+ * =============================================================================
+ */
 function renderRightSidebarTasks() {
     const dueTomorrowList = document.getElementById('due-tomorrow-list');
     const due7DaysList = document.getElementById('due-7-days-list');
@@ -850,15 +992,15 @@ function updateProgressCircle() {
     const completedTasks = tasks.filter(task => task.done).length;
     const totalTasks = tasks.length;
     let percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
+
     const progressRingProgress = document.querySelector('.progress-ring-progress');
     const radius = progressRingProgress.r.baseVal.value;
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (percentage / 100) * circumference;
-    
+
     progressRingProgress.style.strokeDasharray = `${circumference} ${circumference}`;
     progressRingProgress.style.strokeDashoffset = offset;
-    
+
     document.getElementById('progress-percentage').textContent = `${percentage}%`;
     document.getElementById('progress-count').textContent = `${completedTasks}/${totalTasks}`;
     document.getElementById('total-tasks-stat').textContent = totalTasks;
@@ -871,10 +1013,15 @@ rightSidebarSettingsBtn.addEventListener('click', (e) => {
     settingsModal.classList.remove('hidden');
     modalOverlay.classList.remove('hidden');
     modalOverlay.appendChild(settingsModal);
+    applyCustomColors();
 });
 
-
-
+/**
+ * =============================================================================
+ * FUNCTION: GWA CALCULATOR
+ * no need for fixes YET.. maybe ui in the future
+ * =============================================================================
+ */
 function roundToNearestGrade(calculatedGrade) {
     if (isNaN(calculatedGrade) || calculatedGrade === null) return null;
     return gradesOptionsNumeric.reduce((prev, curr) => {
@@ -895,28 +1042,23 @@ function handleGradeChange(e) {
     } else {
         subjectToUpdate.currentGrade = selectedValue ? parseFloat(selectedValue) : null;
     }
-    
+
     const { previousGrade, currentGrade } = subjectToUpdate;
     if (previousGrade !== null && currentGrade !== null) {
-        const calculatedGrade = (currentGrade * (2/3)) + (previousGrade * (1/3));
+        const calculatedGrade = (currentGrade * (2 / 3)) + (previousGrade * (1 / 3));
         subjectToUpdate.grade = roundToNearestGrade(calculatedGrade);
     } else {
         subjectToUpdate.grade = null;
     }
     
-    saveAllData();
-    renderGwaCalculator();
+    
+    saveAllData({ skipRender: true }); 
+    
+    
+    renderGwaCalculator(); 
 }
 
 function renderGwaCalculator() {
-    
-    document.querySelector('#gwa-content thead tr').innerHTML = `
-        <th>Subject</th>
-        <th>Previous Grade (1/3)</th>
-        <th>Current Grade (2/3)</th>
-        <th>Final Grade</th>
-    `;
-    
     gwaBody.innerHTML = '';
     let totalWeightedGrade = 0;
     let totalUnitsWithGrades = 0;
@@ -929,7 +1071,7 @@ function renderGwaCalculator() {
             select.className = 'grade-dropdown';
             select.dataset.subject = subject.name;
             select.dataset.type = type;
-            
+
             let optionsHTML = '<option value="">N/A</option>';
             const gradeValue = (type === 'previous' ? subject.previousGrade : subject.currentGrade);
             gradesDropdownOptions.forEach(grade => {
@@ -951,7 +1093,7 @@ function renderGwaCalculator() {
         const currentGradeCell = document.createElement('td');
         currentGradeCell.dataset.label = "Current Grade";
         currentGradeCell.appendChild(currentGradeSelect);
-        
+
         const finalGradeCell = document.createElement('td');
         finalGradeCell.dataset.label = "Final Grade";
         finalGradeCell.className = 'final-grade-display';
@@ -971,14 +1113,188 @@ function renderGwaCalculator() {
 
     if (totalUnitsWithGrades > 0) {
         const finalGwa = totalWeightedGrade / totalUnitsWithGrades;
-        gwaDisplay.textContent = `Your GWA: ${finalGwa.toFixed(4)}`;
+        // rounding to two decimal places kek
+        gwaDisplay.textContent = `Your GWA: ${finalGwa.toFixed(2)}`;
     } else {
         gwaDisplay.textContent = 'Select grades to calculate your GWA.';
     }
 }
 
+/**
+ * =============================================================================
+ * FUNCTION: GRADE CALCU PER SUBJECT ( no need for fix i guess..? just add disclaimers ig)
+ * =============================================================================
+ */
+function transmuteGrade(percentage) {
+    if (isNaN(percentage) || percentage === null) return null;
+    if (percentage >= 96) return 1.00;
+    if (percentage >= 90) return 1.25;
+    if (percentage >= 84) return 1.50;
+    if (percentage >= 78) return 1.75;
+    if (percentage >= 72) return 2.00;
+    if (percentage >= 66) return 2.25;
+    if (percentage >= 60) return 2.50;
+    if (percentage >= 55) return 2.75;
+    if (percentage >= 50) return 3.00;
+    if (percentage >= 40) return 4.00;
+    return 5.00;
+}
+
+function setupGradeCalculator() {
+    gradeCalcSubjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>' +
+        subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+
+    gradeCalcComponentsGrid.innerHTML = '';
+    gradeCalcResults.textContent = 'Select a subject to start calculating.';
+
+    gradeCalcSubjectSelect.onchange = (e) => {
+        renderGradeCalculatorUI(e.target.value);
+    };
+}
+
+function renderGradeCalculatorUI(subjectName) {
+    gradeCalcComponentsGrid.innerHTML = '';
+    if (!subjectName) {
+        gradeCalcResults.textContent = 'Select a subject to start calculating.';
+        return;
+    }
+    const componentKey = Object.keys(GRADE_COMPONENTS).find(key => subjectName.toLowerCase().includes(key.toLowerCase()));
+    if (!componentKey) {
+        gradeCalcComponentsGrid.innerHTML = '<p class="empty-message">Grade components are not defined for this subject.</p>';
+        recalculateAndDisplayGrade(subjectName);
+        return;
+    }
+    const components = GRADE_COMPONENTS[componentKey];
+    const subject = subjects.find(s => s.name === subjectName);
+    if (!subject.detailedGrades) subject.detailedGrades = {};
+
+    for (const [name, weight] of Object.entries(components)) {
+        if (!subject.detailedGrades[name]) subject.detailedGrades[name] = [];
+
+        let scoreRowsHTML = subject.detailedGrades[name].map((score, index) => `
+            <div class="grade-calc-score-row" data-index="${index}">
+                <label>#${index + 1}</label>
+                <input type="number" class="score-input" placeholder="Score" value="${score.score || ''}">
+                <span>/</span>
+                <input type="number" class="total-input" placeholder="Total" value="${score.total || ''}">
+                <button class="action-btn delete-score-btn cute-button-icon-only" title="Delete Score">&times;</button>
+            </div>
+        `).join('');
+
+        const fieldsetHTML = `
+            <fieldset class="grade-calc-component" data-component-name="${name}">
+                <legend>${name} (${weight * 100}%)</legend>
+                <div class="scores-container">${scoreRowsHTML}</div>
+                <button class="cute-button add-score-btn" style="width: 100%; margin-top: 10px;">+ Add Score</button>
+            </fieldset>
+        `;
+        gradeCalcComponentsGrid.insertAdjacentHTML('beforeend', fieldsetHTML);
+    }
+    recalculateAndDisplayGrade(subjectName);
+}
+
+gradeCalcComponentsGrid.addEventListener('click', (e) => {
+    const subjectName = gradeCalcSubjectSelect.value;
+    if (!subjectName) return;
+
+    const addBtn = e.target.closest('.add-score-btn');
+    if (addBtn) {
+        const componentName = addBtn.closest('.grade-calc-component').dataset.componentName;
+        const subject = subjects.find(s => s.name === subjectName);
+        subject.detailedGrades[componentName].push({ score: '', total: '' });
+        renderGradeCalculatorUI(subjectName);
+    }
+
+    const deleteBtn = e.target.closest('.delete-score-btn');
+    if (deleteBtn) {
+        const componentName = deleteBtn.closest('.grade-calc-component').dataset.componentName;
+        const scoreIndex = parseInt(deleteBtn.closest('.grade-calc-score-row').dataset.index);
+        const subject = subjects.find(s => s.name === subjectName);
+        subject.detailedGrades[componentName].splice(scoreIndex, 1);
+        renderGradeCalculatorUI(subjectName);
+    }
+});
+
+gradeCalcComponentsGrid.addEventListener('input', (e) => {
+    const subjectName = gradeCalcSubjectSelect.value;
+    if (e.target.classList.contains('score-input') || e.target.classList.contains('total-input')) {
+        recalculateAndDisplayGrade(subjectName);
+    }
+});
+
+function recalculateAndDisplayGrade(subjectName) {
+    if (!subjectName) {
+        gradeCalcResults.textContent = 'Select a subject to start calculating.';
+        return;
+    };
+
+    const subject = subjects.find(s => s.name === subjectName);
+    const componentKey = Object.keys(GRADE_COMPONENTS).find(key => subjectName.toLowerCase().includes(key.toLowerCase()));
+    
+    let totalWeightedScore = 0;
+    
+    if (componentKey) {
+        const componentElements = gradeCalcComponentsGrid.querySelectorAll('.grade-calc-component');
+        componentElements.forEach(compEl => {
+            const componentName = compEl.dataset.componentName;
+            const weight = GRADE_COMPONENTS[componentKey][componentName];
+            let componentTotalScore = 0;
+            let componentTotalItems = 0;
+            
+            const newScores = [];
+            compEl.querySelectorAll('.grade-calc-score-row').forEach(row => {
+                const score = parseFloat(row.querySelector('.score-input').value) || 0;
+                const total = parseFloat(row.querySelector('.total-input').value) || 0;
+                newScores.push({ score, total });
+                if (total > 0) {
+                    componentTotalScore += score;
+                    componentTotalItems += total;
+                }
+            });
+    
+            subject.detailedGrades[componentName] = newScores;
+            
+            if (componentTotalItems > 0) {
+                const componentAverage = componentTotalScore / componentTotalItems;
+                totalWeightedScore += componentAverage * weight;
+            }
+        });
+    }
+
+    // =======================================================
+    // ===== debug for the actual fricking percentage  =======
+    // =======================================================
+    console.clear(); // clear console
+    console.log(`--- Grade Calculation for: ${subjectName} ---`);
+    console.log(`Total Weighted Score (decimal):`, totalWeightedScore);
+
+    const finalPercentage = totalWeightedScore * 100;
+    const transmuted = transmuteGrade(finalPercentage);
+
+    console.log(`Final Percentage (what you see):`, finalPercentage);
+    console.log(`Transmuted Grade (what you get):`, transmuted);
+    console.log(`-------------------------------------------`);
+    // =====================================================
+    // ===== end debug for percentage kekekekekekekeke =====
+    // =====================================================
 
 
+    // percentage + final grade to show 
+    if (componentKey) {
+        gradeCalcResults.innerHTML = `Raw Percentage: <strong>${finalPercentage.toFixed(2)}%</strong> / Calculated Grade: <strong>${transmuted ? transmuted.toFixed(2) : 'N/A'}</strong>`;
+    } else {
+        gradeCalcResults.textContent = 'Grade components not defined for this subject.';
+    }
+    
+    // save scors
+    saveAllData();
+}
+
+/**
+ * =============================================================================
+ * FUNCTION: CALENDAR (fix: nandun yata(??) yung error ng day after)
+ * =============================================================================
+ */
 function renderCalendar() {
     calendarDays.innerHTML = '';
     const month = plannerDate.getMonth();
@@ -999,10 +1315,10 @@ function renderCalendar() {
         if (i === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
             dayClass += ' today';
         }
-        
+
         let dayHTML = `<div class="${dayClass}" data-date="${dateString}"><div class="day-number">${i}</div>`;
         const eventsForDay = tasks.filter(t => t.dueDate === dateString);
-        if(eventsForDay.length > 0) {
+        if (eventsForDay.length > 0) {
             dayHTML += '<div class="events">';
             eventsForDay.forEach(event => {
                 dayHTML += `<div class="calendar-event" title="${escapeHTML(event.name)} (${escapeHTML(event.subject)})">${escapeHTML(event.name)}</div>`;
@@ -1012,7 +1328,7 @@ function renderCalendar() {
         dayHTML += `</div>`;
         calendarDays.insertAdjacentHTML('beforeend', dayHTML);
     }
-    
+
     calendarDays.querySelectorAll('.calendar-day').forEach(day => {
         if (!day.classList.contains('other-month')) {
             day.addEventListener('click', () => {
@@ -1034,18 +1350,20 @@ nextMonthBtn.addEventListener('click', () => {
     renderCalendar();
 });
 
-
-
-
+/**
+ * =============================================================================
+ * FUNCTION: TODO LIST (already okay, no need for improvements YET)
+ * =============================================================================
+ */
 function renderTasks() {
     const todoBody = document.getElementById('todo-body');
     todoBody.innerHTML = '';
 
-    tasks.sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate))
-         .forEach(task => {
-        const tr = document.createElement('tr');
-        tr.className = task.done ? 'completed' : '';
-        tr.innerHTML = `
+    tasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .forEach(task => {
+            const tr = document.createElement('tr');
+            tr.className = task.done ? 'completed' : '';
+            tr.innerHTML = `
             <td data-label="Done"><input type="checkbox" class="task-done-checkbox" data-id="${task.id}" ${task.done ? 'checked' : ''}></td>
             <td data-label="Assignment">${escapeHTML(task.name)} ${task.isShared ? `<span class="shared-by-indicator">Shared by ${escapeHTML(task.sharedBy)}</span>` : ''}</td>
             <td data-label="Subject">${escapeHTML(task.subject)}</td>
@@ -1056,8 +1374,8 @@ function renderTasks() {
                 <button class="action-btn delete-task-btn" data-id="${task.id}" title="Delete Task"><i class="fas fa-trash"></i></button>
             </td>
         `;
-        todoBody.appendChild(tr);
-    });
+            todoBody.appendChild(tr);
+        });
 
     todoBody.querySelectorAll('.task-done-checkbox').forEach(box => {
         box.addEventListener('change', (e) => {
@@ -1081,7 +1399,7 @@ function renderTasks() {
             });
         });
     });
-    
+
     todoBody.querySelectorAll('.share-task-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const taskId = parseInt(e.currentTarget.dataset.id);
@@ -1113,73 +1431,203 @@ document.getElementById('todo-form').addEventListener('submit', (e) => {
     e.target.reset();
 });
 
-
-
-function renderSchedule() {
-    scheduleGrid.innerHTML = `
-        <div class="schedule-header">Time</div>
-        <div class="schedule-header">Monday</div>
-        <div class="schedule-header">Tuesday</div>
-        <div class="schedule-header">Wednesday</div>
-        <div class="schedule-header">Thursday</div>
-        <div class="schedule-header">Friday</div>
-    `;
-
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    let timeSlotsHTML = '<div class="schedule-times">';
-    for (let hour = 7; hour <= 18; hour++) {
-        timeSlotsHTML += `<div class="schedule-time-slot">${hour % 12 === 0 ? 12 : hour % 12}:00 ${hour < 12 ? 'AM' : 'PM'}</div>`;
-    }
-    timeSlotsHTML += '</div>';
-    scheduleGrid.innerHTML += timeSlotsHTML;
-
-    days.forEach(day => {
-        const dayDiv = document.createElement('div');
-        dayDiv.className = 'schedule-day';
-        dayDiv.dataset.day = day;
-        
-       
-        const lunchDiv = document.createElement('div');
-        lunchDiv.className = 'schedule-class';
-        lunchDiv.style.backgroundColor = 'var(--border-color)';
-        lunchDiv.style.border = 'none';
-        
-        const lunchStartMinutes = 12 * 60 + 10; 
-        const lunchEndMinutes = 13 * 60 + 5; 
-        const totalDayMinutes = (18 - 7) * 60;
-
-        const topPercent = ((lunchStartMinutes - (7 * 60)) / totalDayMinutes) * 100;
-        const heightPercent = ((lunchEndMinutes - lunchStartMinutes) / totalDayMinutes) * 100;
-
-        lunchDiv.style.top = `${topPercent}%`;
-        lunchDiv.style.height = `${heightPercent}%`;
-        lunchDiv.innerHTML = '<strong>Lunch</strong>';
-        dayDiv.appendChild(lunchDiv);
-
-        scheduleGrid.appendChild(dayDiv);
-    });
-}
-
+/**
+ * =============================================================================
+ * FUNCTION: EXTRACURIC (fix: it's kinda mid but its okay naman for smth beta)
+ * =============================================================================
+ */
 function renderExtracurriculars() {
     extracurricularsGrid.innerHTML = '';
     if (extracurriculars.length === 0) {
-        extracurricularsGrid.innerHTML = '<p class="empty-message">No activities added yet.</p>';
+        extracurricularsGrid.innerHTML = '<p class="empty-message">No activities added yet. Click "Add Activity" to start.</p>';
         return;
     }
     extracurriculars.forEach(activity => {
         const card = document.createElement('div');
         card.className = 'extracurricular-card';
+        card.dataset.id = activity.id;
         card.innerHTML = `
+            <div class="card-actions">
+                <button class="action-btn delete-extracurricular-btn" data-id="${activity.id}" title="Delete Activity"><i class="fas fa-trash"></i></button>
+            </div>
             <div class="category">${escapeHTML(activity.category)}</div>
             <h4>${escapeHTML(activity.name)}</h4>
             <p class="role">${escapeHTML(activity.role)}</p>
         `;
         extracurricularsGrid.appendChild(card);
     });
+
+    extracurricularsGrid.querySelectorAll('.extracurricular-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-extracurricular-btn')) return;
+            openExtracurricularDetail(parseInt(card.dataset.id));
+        });
+    });
+
+    extracurricularsGrid.querySelectorAll('.delete-extracurricular-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const activityId = parseInt(e.currentTarget.dataset.id);
+            showCustomConfirm("Are you sure you want to delete this activity?", () => {
+                extracurriculars = extracurriculars.filter(a => a.id !== activityId);
+                saveAllData();
+                renderExtracurriculars();
+            });
+        });
+    });
 }
 
+addExtracurricularBtn.addEventListener('click', () => {
+    closeAllModals();
+    addExtracurricularModal.querySelector('#add-extracurricular-modal-title').textContent = "Add Activity";
+    addExtracurricularModal.querySelector('form')?.reset();
+    modalOverlay.classList.remove('hidden');
+    modalOverlay.appendChild(addExtracurricularModal);
+    addExtracurricularModal.classList.remove('hidden');
+});
 
+saveExtracurricularBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('extracurricular-name-input').value.trim();
+    const category = document.getElementById('extracurricular-category-select').value;
+    const role = document.getElementById('extracurricular-role-input').value.trim();
 
+    if (!name || !role) {
+        return showCustomAlert("Activity Name and Role are required.", "alert");
+    }
+
+    extracurriculars.push({
+        id: Date.now(),
+        name,
+        category,
+        role,
+        meetings: [],
+        projects: [],
+        tasks: []
+    });
+    saveAllData();
+    renderExtracurriculars();
+    closeAllModals();
+});
+
+function openExtracurricularDetail(activityId) {
+    currentlyEditingExtracurricularId = activityId;
+    const activity = extracurriculars.find(a => a.id === activityId);
+    if (!activity) return;
+
+    closeAllModals();
+    extracurricularDetailModal.querySelector('#extracurricular-detail-title').textContent = activity.name;
+
+    extracurricularDetailModal.querySelectorAll('.subject-detail-tab-btn').forEach(btn => btn.classList.remove('active'));
+    extracurricularDetailModal.querySelectorAll('.detail-tab-content').forEach(content => content.classList.add('hidden'));
+    extracurricularDetailModal.querySelector('.subject-detail-tab-btn[data-detail-tab="activity-meetings"]').classList.add('active');
+    extracurricularDetailModal.querySelector('#activity-meetings').classList.remove('hidden');
+
+    renderExtracurricularDetailContent('activity-meetings');
+
+    modalOverlay.classList.remove('hidden');
+    modalOverlay.appendChild(extracurricularDetailModal);
+    extracurricularDetailModal.classList.remove('hidden');
+}
+
+extracurricularDetailModal.querySelectorAll('.subject-detail-tab-btn').forEach(button => {
+    button.addEventListener('click', () => {
+        extracurricularDetailModal.querySelectorAll('.subject-detail-tab-btn').forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        extracurricularDetailModal.querySelectorAll('.detail-tab-content').forEach(content => content.classList.add('hidden'));
+        const tabId = button.dataset.detailTab;
+        document.getElementById(tabId).classList.remove('hidden');
+        renderExtracurricularDetailContent(tabId);
+    });
+});
+
+function renderExtracurricularDetailContent(tabId) {
+    const activity = extracurriculars.find(a => a.id === currentlyEditingExtracurricularId);
+    if (!activity) return;
+
+    let listEl, items;
+    if (tabId === 'activity-meetings') {
+        listEl = document.getElementById('meetings-list');
+        items = activity.meetings || [];
+    } else if (tabId === 'activity-projects') {
+        listEl = document.getElementById('projects-list');
+        items = activity.projects || [];
+    } else if (tabId === 'activity-tasks') {
+        listEl = document.getElementById('activity-tasks-list');
+        items = activity.tasks || [];
+    }
+
+    listEl.innerHTML = '';
+    items.forEach((item, index) => {
+        const li = document.createElement('li');
+        const mainText = item.topic || item.name || item.description;
+        const dateText = item.datetime ? new Date(item.datetime).toLocaleString() : (item.deadline ? new Date(item.deadline + 'T00:00:00').toLocaleDateString() : '');
+        li.innerHTML = `
+            <span>${escapeHTML(mainText)} ${dateText ? `(${dateText})` : ''}</span>
+            <button class="action-btn delete-extracurricular-item-btn" data-index="${index}" data-tab="${tabId}">&times;</button>
+        `;
+        listEl.appendChild(li);
+    });
+}
+
+document.getElementById('add-meeting-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const topic = e.target.children[0].value;
+    const datetime = e.target.children[1].value;
+    const activity = extracurriculars.find(a => a.id === currentlyEditingExtracurricularId);
+    if (activity && topic && datetime) {
+        activity.meetings.push({ topic, datetime });
+        saveAllData();
+        renderExtracurricularDetailContent('activity-meetings');
+        e.target.reset();
+    }
+});
+document.getElementById('add-project-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = e.target.children[0].value;
+    const deadline = e.target.children[1].value;
+    const activity = extracurriculars.find(a => a.id === currentlyEditingExtracurricularId);
+    if (activity && name) {
+        activity.projects.push({ name, deadline });
+        saveAllData();
+        renderExtracurricularDetailContent('activity-projects');
+        e.target.reset();
+    }
+});
+document.getElementById('add-activity-task-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const description = e.target.children[0].value;
+    const dueDate = e.target.children[1].value;
+    const activity = extracurriculars.find(a => a.id === currentlyEditingExtracurricularId);
+    if (activity && description) {
+        activity.tasks.push({ description, dueDate });
+        saveAllData();
+        renderExtracurricularDetailContent('activity-tasks');
+        e.target.reset();
+    }
+});
+
+extracurricularDetailModal.addEventListener('click', (e) => {
+    if (e.target.closest('.delete-extracurricular-item-btn')) {
+        const btn = e.target.closest('.delete-extracurricular-item-btn');
+        const index = parseInt(btn.dataset.index);
+        const tabId = btn.dataset.tab;
+        const activity = extracurriculars.find(a => a.id === currentlyEditingExtracurricularId);
+
+        if (tabId === 'activity-meetings') activity.meetings.splice(index, 1);
+        else if (tabId === 'activity-projects') activity.projects.splice(index, 1);
+        else if (tabId === 'activity-tasks') activity.tasks.splice(index, 1);
+
+        saveAllData();
+        renderExtracurricularDetailContent(tabId);
+    }
+});
+
+/**
+ * =============================================================================
+ * FUNCTINO: NOTES (fix: di masyadong appealing. i'd still choose google docs over it)
+ * =============================================================================
+ */
 function renderNotebooks() {
     const notebooksGrid = document.getElementById('notebooks-grid');
     notebooksGrid.innerHTML = '';
@@ -1199,7 +1647,7 @@ function renderNotebooks() {
             <p>Subject: ${escapeHTML(notebook.subject)}</p>
             ${notebook.isShared ? `<p class="shared-by-indicator">Shared by ${escapeHTML(notebook.sharedBy)}</p>` : ''}
         `;
-        
+
         card.addEventListener('click', (e) => {
             if (e.target.closest('.action-btn')) return;
             openNotebookEditor(notebook);
@@ -1213,33 +1661,33 @@ function renderNotebooks() {
                 renderNotebooks();
             });
         });
-        
+
         card.querySelector('.share-notebook-btn')?.addEventListener('click', (e) => {
             e.stopPropagation();
             openShareModal(notebook.id, 'notebook');
         });
-        
+
         notebooksGrid.appendChild(card);
     });
 }
 
 function createNewNotebook(type) {
-    currentNotebook = { id: null, type: type, isShared: false }; 
+    currentNotebook = { id: null, type: type, isShared: false };
     openNotebookEditor(currentNotebook);
 }
 
 function openNotebookEditor(notebook) {
     currentNotebook = notebook;
     closeAllModals();
-    
+
     notebookTitleInput.value = notebook.title || '';
     populateSubjectDropdowns();
-    setTimeout(() => { 
-         notebookSubjectSelect.value = notebook.subject || '';
+    setTimeout(() => {
+        notebookSubjectSelect.value = notebook.subject || '';
     }, 0);
-    
+
     textEditorView.classList.toggle('hidden', notebook.type !== 'text');
-    
+
 
     const isReadOnly = !!notebook.isShared;
     saveNotebookBtn.style.display = isReadOnly ? 'none' : 'inline-flex';
@@ -1250,7 +1698,7 @@ function openNotebookEditor(notebook) {
         initQuillEditor(notebook.content || '');
         if (quillEditor) quillEditor.enable(!isReadOnly);
     }
-    
+
     modalOverlay.appendChild(notebookEditorModal);
     notebookEditorModal.classList.remove('hidden');
     modalOverlay.classList.remove('hidden');
@@ -1258,42 +1706,48 @@ function openNotebookEditor(notebook) {
 
 function initQuillEditor(content) {
     const container = document.getElementById('quill-editor-container');
-    container.innerHTML = ''; 
-    quillEditor = new Quill(container, { 
+    container.innerHTML = '';
+    quillEditor = new Quill(container, {
         theme: 'snow',
-        readOnly: (currentNotebook && currentNotebook.isShared) 
+        readOnly: (currentNotebook && currentNotebook.isShared)
     });
-    if(content) quillEditor.setContents(content);
+    if (content) quillEditor.setContents(content);
 }
 
 saveNotebookBtn.addEventListener('click', () => {
     const title = notebookTitleInput.value.trim();
     const subject = notebookSubjectSelect.value;
     if (!title || !subject) return showCustomAlert("Title and subject are required.", "alert");
-    
-    if (currentNotebook && currentNotebook.id) { 
+
+    if (currentNotebook && currentNotebook.id) {
         const nb = notebooks.find(n => n.id === currentNotebook.id);
-        if(nb) {
+        if (nb) {
             nb.title = title;
             nb.subject = subject;
-            if(nb.type === 'text') nb.content = quillEditor.getContents();
+            if (nb.type === 'text') nb.content = quillEditor.getContents();
             nb.lastEdited = new Date().toISOString();
         }
-    } else { 
+    } else {
         notebooks.push({
             id: Date.now(),
-            title, subject,
+            title,
+            subject,
             type: currentNotebook.type,
             content: currentNotebook.type === 'text' ? quillEditor.getContents() : null,
             lastEdited: new Date().toISOString()
         });
     }
-    
+
     saveAllData();
     renderNotebooks();
     closeAllModals();
 });
 
+/**
+ * =============================================================================
+ * FUNCTION: FLASHCARDS (fix: di gumagana halos lahat ng features KEK)
+ * =============================================================================
+ */
 function showFlashcardFoldersView() {
     document.querySelector('.flashcard-folders-view').classList.remove('hidden');
     document.querySelector('.flashcard-detail-view').classList.add('hidden');
@@ -1337,9 +1791,12 @@ document.getElementById('create-folder-btn').addEventListener('click', () => {
     const name = prompt("Enter new folder name:");
     if (!name) return;
     const subject = prompt("Enter subject for this folder (must be an existing subject):");
-    if(name && subject && subjects.find(s => s.name.toLowerCase() === subject.toLowerCase())) {
+    if (name && subject && subjects.find(s => s.name.toLowerCase() === subject.toLowerCase())) {
         flashcardFolders.push({
-            id: Date.now(), name, subject, cards: []
+            id: Date.now(),
+            name,
+            subject,
+            cards: []
         });
         saveAllData();
         renderFlashcardFolders();
@@ -1354,12 +1811,20 @@ function openFlashcardFolder(folderId) {
 
     document.querySelector('.flashcard-folders-view').classList.add('hidden');
     document.querySelector('.flashcard-detail-view').classList.remove('hidden');
-    
+    document.querySelector('.flashcard-review-timed-view').classList.add('hidden');
+    document.querySelector('.flashcard-review-type-view').classList.add('hidden');
+
+
     document.getElementById('current-folder-name').textContent = `Folder: ${currentFlashcardFolder.name}`;
-    
+
     const isReadOnly = !!currentFlashcardFolder.isShared;
     document.getElementById('add-flashcard-btn').style.display = isReadOnly ? 'none' : 'inline-flex';
     
+    const hasCards = currentFlashcardFolder.cards.length > 0;
+    startTimedFlipBtn.disabled = !hasCards;
+    startTypeAnswerBtn.disabled = !hasCards;
+
+
     renderFlashcardsList(currentFlashcardFolder.id);
 }
 
@@ -1402,10 +1867,256 @@ saveFlashcardBtn.addEventListener('click', () => {
     currentFlashcardFolder.cards.push({ id: Date.now(), front, back });
     saveAllData();
     renderFlashcardsList(currentFlashcardFolder.id);
+    openFlashcardFolder(currentFlashcardFolder.id);
     closeAllModals();
 });
 
+function startTimedReview() {
+    if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
+    currentCardIndex = 0;
+    document.querySelector('.flashcard-detail-view').classList.add('hidden');
+    document.querySelector('.flashcard-review-timed-view').classList.remove('hidden');
+    document.getElementById('timed-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
+    displayTimedCard();
+}
+
+function displayTimedCard() {
+    const card = currentFlashcardFolder.cards[currentCardIndex];
+    timedCardFront.textContent = card.front;
+    timedCardBack.textContent = card.back;
+    timedFlashcardDisplay.classList.remove('flipped');
+    prevTimedCardBtn.disabled = (currentCardIndex === 0);
+    nextTimedCardBtn.disabled = (currentCardIndex === currentFlashcardFolder.cards.length - 1);
+}
+
+function startTypeAnswerReview() {
+    if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
+    currentCardIndex = 0;
+    document.querySelector('.flashcard-detail-view').classList.add('hidden');
+    document.querySelector('.flashcard-review-type-view').classList.remove('hidden');
+    document.getElementById('type-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
+    displayTypeAnswerCard();
+}
+
+function displayTypeAnswerCard() {
+    const card = currentFlashcardFolder.cards[currentCardIndex];
+    typeCardFront.textContent = card.front;
+    typeCardBack.textContent = card.back;
+
+    typeCardBack.classList.add('hidden');
+    typeAnswerInput.value = '';
+    typeAnswerInput.disabled = false;
+    typeAnswerFeedback.textContent = '';
+    typeAnswerFeedback.className = 'feedback-message';
+    checkTypeAnswerBtn.disabled = false;
+    revealTypeAnswerBtn.disabled = false;
+    nextTypeCardBtn.disabled = true;
+}
+
+startTimedFlipBtn.addEventListener('click', startTimedReview);
+startTypeAnswerBtn.addEventListener('click', startTypeAnswerReview);
+flipTimedCardBtn.addEventListener('click', () => timedFlashcardDisplay.classList.toggle('flipped'));
+prevTimedCardBtn.addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; displayTimedCard(); } });
+nextTimedCardBtn.addEventListener('click', () => { if (currentCardIndex < currentFlashcardFolder.cards.length - 1) { currentCardIndex++; displayTimedCard(); } });
+
+checkTypeAnswerBtn.addEventListener('click', () => {
+    const card = currentFlashcardFolder.cards[currentCardIndex];
+    const userAnswer = typeAnswerInput.value.trim();
+    if (userAnswer.toLowerCase() === card.back.toLowerCase()) {
+        typeAnswerFeedback.textContent = "Correct!";
+        typeAnswerFeedback.classList.add('correct');
+    } else {
+        typeAnswerFeedback.textContent = "Incorrect. Try again!";
+        typeAnswerFeedback.classList.add('incorrect');
+    }
+    typeAnswerInput.disabled = true;
+    checkTypeAnswerBtn.disabled = true;
+    revealTypeAnswerBtn.disabled = true;
+    nextTypeCardBtn.disabled = false;
+});
+
+revealTypeAnswerBtn.addEventListener('click', () => {
+    typeCardBack.classList.remove('hidden');
+    typeAnswerFeedback.textContent = `The answer is: ${currentFlashcardFolder.cards[currentCardIndex].back}`;
+    typeAnswerInput.disabled = true;
+    checkTypeAnswerBtn.disabled = true;
+    revealTypeAnswerBtn.disabled = true;
+    nextTypeCardBtn.disabled = false;
+});
+
+nextTypeCardBtn.addEventListener('click', () => {
+    if (currentCardIndex < currentFlashcardFolder.cards.length - 1) {
+        currentCardIndex++;
+        displayTypeAnswerCard();
+    } else {
+        showCustomAlert("Review complete!");
+        openFlashcardFolder(currentFlashcardFolder.id);
+    }
+});
 
 document.getElementById('back-to-folders').addEventListener('click', showFlashcardFoldersView);
 document.getElementById('back-from-timed-review').addEventListener('click', () => openFlashcardFolder(currentFlashcardFolder.id));
 document.getElementById('back-from-type-review').addEventListener('click', () => openFlashcardFolder(currentFlashcardFolder.id));
+
+
+/**
+ * =============================================================================
+ * FUNCTION: POMODORO (fix: medyo panget yung design IJBOL)
+ * =============================================================================
+ */
+function updatePomodoroDisplay() {
+    const minutes = Math.floor(pomodoro.timeLeft / 60);
+    const seconds = pomodoro.timeLeft % 60;
+    pomodoroMinutes.textContent = String(minutes).padStart(2, '0');
+    pomodoroSeconds.textContent = String(seconds).padStart(2, '0');
+}
+
+function updatePomodoroTasks() {
+    pomodoroTaskSelect.innerHTML = '<option value="">-- Select a Task --</option>';
+    tasks.filter(t => !t.done).forEach(task => {
+        const option = document.createElement('option');
+        option.value = task.id;
+        option.textContent = `${task.name} (${task.subject})`;
+        pomodoroTaskSelect.appendChild(option);
+    });
+    pomodoroCurrentTask.textContent = pomodoroTaskSelect.selectedOptions[0]?.text || "No task selected";
+}
+
+function startTimer() {
+    if (pomodoro.timerId) return;
+    pomodoro.isPaused = false;
+    startTimerBtn.disabled = true;
+    pauseTimerBtn.disabled = false;
+    pomodoro.timerId = setInterval(() => {
+        pomodoro.timeLeft--;
+        updatePomodoroDisplay();
+        if (pomodoro.timeLeft <= 0) {
+            clearInterval(pomodoro.timerId);
+            pomodoro.timerId = null;
+            showCustomAlert("Pomodoro session finished!");
+            resetTimer();
+        }
+    }, 1000);
+}
+
+function pauseTimer() {
+    pomodoro.isPaused = true;
+    clearInterval(pomodoro.timerId);
+    pomodoro.timerId = null;
+    startTimerBtn.disabled = false;
+    pauseTimerBtn.disabled = true;
+}
+
+function resetTimer() {
+    clearInterval(pomodoro.timerId);
+    pomodoro.timerId = null;
+    pomodoro.isPaused = true;
+    const customMins = parseInt(customMinutesInput.value);
+    pomodoro.defaultTime = (customMins > 0) ? customMins * 60 : 25 * 60;
+    pomodoro.timeLeft = pomodoro.defaultTime;
+    updatePomodoroDisplay();
+    startTimerBtn.disabled = false;
+    pauseTimerBtn.disabled = true;
+}
+
+startTimerBtn.addEventListener('click', startTimer);
+pauseTimerBtn.addEventListener('click', pauseTimer);
+resetTimerBtn.addEventListener('click', resetTimer);
+customMinutesInput.addEventListener('input', resetTimer);
+pomodoroTaskSelect.addEventListener('change', (e) => {
+    pomodoroCurrentTask.textContent = e.target.selectedOptions[0]?.text || "No task selected";
+});
+
+updatePomodoroDisplay();
+
+/**
+ * =============================================================================
+ * FUNCTION: Modal fixing
+ * pls kill me 
+ * =============================================================================
+ */
+// click listener
+modalOverlay.addEventListener('click', (e) => {
+
+    if (e.target === modalOverlay || e.target.closest('.modal-close-btn')) {
+        closeAllModals();
+    }
+});
+
+/**
+ * =============================================================================
+ * FUNCTION: EVENT LISTENERS
+ * html button to functions 
+ * =============================================================================
+ */
+document.addEventListener('DOMContentLoaded', () => {
+
+    // sidebar debug
+    const sidebar = document.querySelector('.left-sidebar');
+    sidebar.addEventListener('click', (e) => {
+        const tabButton = e.target.closest('.tab-btn');
+        if (tabButton && !tabButton.disabled) {
+            const tabId = tabButton.dataset.tab;
+            switchTab(tabId);
+        }
+    });
+
+    // closing modal
+    const modalOverlay = document.getElementById('modal-overlay');
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay || e.target.closest('.modal-close-btn')) {
+            closeAllModals();
+        }
+    });
+
+    //  notebook stuff 
+    const createNotebookBtn = document.getElementById('create-notebook-btn');
+    const notebookTypeModal = document.getElementById('notebook-type-modal');
+    const createTextNotebookBtn = document.getElementById('create-text-notebook-btn');
+    
+    createNotebookBtn.addEventListener('click', () => {
+        closeAllModals();
+        modalOverlay.classList.remove('hidden');
+        modalOverlay.appendChild(notebookTypeModal);
+        notebookTypeModal.classList.remove('hidden');
+    });
+
+    createTextNotebookBtn.addEventListener('click', () => {
+        closeAllModals();
+        createNewNotebook('text');
+    });
+    
+    // settingsssss
+    const saveSettingsBtn = document.getElementById('save-settings-btn');
+    const pfpUrlInput = document.getElementById('pfp-url-input');
+    const themeToggleSwitch = document.getElementById('theme-toggle');
+    const resetThemeBtn = document.getElementById('reset-theme-btn');
+
+    saveSettingsBtn.addEventListener('click', async () => {
+        const newTheme = themeToggleSwitch.checked ? 'dark' : 'light';
+        applyTheme(newTheme);
+
+        // custom stuff i dont think works yet
+        themeColors[theme] = {};
+        settingsModal.querySelectorAll('input[type="color"]').forEach(picker => {
+            themeColors[theme][picker.dataset.var] = picker.value;
+        });
+        applyCustomColors();
+
+        // update pfp 
+        const newPfpUrl = pfpUrlInput.value.trim();
+        if (newPfpUrl) {
+            await AuthService.updateUserPfp(currentUser, newPfpUrl);
+            profilePic.src = newPfpUrl;
+        }
+
+        saveAllData({ skipRender: true });
+        showCustomAlert('Settings saved!');
+        closeAllModals();
+    });
+
+    resetThemeBtn.addEventListener('click', () => {
+        themeColors[theme] = {};
+        applyCustomColors();
+    });
+});
