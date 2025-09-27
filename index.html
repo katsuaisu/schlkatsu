@@ -166,20 +166,21 @@
                 </section>
 
                 <section id="pomodoro-content" class="tab-content hidden">
-                    <h2>Pomodoro Timer</h2>
-                    <div class="pomodoro-timer">
-                        <div class="timer-display-wrapper">
-                            <div class="timer-display">
-                                <span id="minutes">25</span>:<span id="seconds">00</span>
+                    <div class="pomodoro-container">
+                        <div class="pomodoro-timer-body">
+                            <div class="pomodoro-timer-screen">
+                                <div class="timer-display">
+                                    <span id="minutes">25</span>:<span id="seconds">00</span>
+                                </div>
                             </div>
-                        </div>
-                        <p id="current-task"> No task selected </p>
-                        <div class="pomodoro-controls">
-                            <input type="number" id="custom-minutes" placeholder="Custom Mins" min="1">
-                            <select id="task-select"></select>
-                            <button id="start-timer" class="cute-button timer-btn">Start</button>
-                            <button id="pause-timer" class="cute-button timer-btn" disabled>Pause</button>
-                            <button id="reset-timer" class="cute-button timer-btn">Reset</button>
+                             <p id="current-task"> No task selected </p>
+                            <div class="pomodoro-controls">
+                                <input type="number" id="custom-minutes" placeholder="Mins" min="1">
+                                <select id="task-select"></select>
+                                <button id="start-timer" title="Start" class="cute-button timer-btn"><i class="fas fa-play"></i></button>
+                                <button id="pause-timer" title="Pause" class="cute-button timer-btn" disabled><i class="fas fa-pause"></i></button>
+                                <button id="reset-timer" title="Reset" class="cute-button timer-btn"><i class="fas fa-undo"></i></button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -514,8 +515,8 @@
             <h3 id="share-modal-title">Share Item</h3>
             <button class="modal-close-btn cute-button-icon-only">&times;</button>
         </div>
-        <p>Enter the username of the user you want to share this with (read-only).</p>
-        <input type="text" id="share-username-input" class="modal-input" placeholder="Username">
+        <p>Enter the email address of the user you want to share this with.</p>
+        <input type="email" id="share-user-email-input" class="modal-input" placeholder="user@example.com">
         <div class="modal-buttons">
             <button id="execute-share-btn" class="cute-button">Share</button>
         </div>

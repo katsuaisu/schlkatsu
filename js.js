@@ -10,7 +10,7 @@ const AuthService = {
             const userDocRef = db.collection('users').doc(userCredential.user.uid);
             await userDocRef.set({
                 pfp: 'https://i.imgur.com/V4RclNb.png', // Default PFP
-                email: email
+                email: email 
             });
             return { success: true };
         } catch (error) {
@@ -28,6 +28,8 @@ const AuthService = {
     },
 
     logout() {
+      
+        document.title = "schlkatsu by rei";
         return auth.signOut();
     },
 
@@ -118,8 +120,31 @@ const GRADE_COMPONENTS = {
     'Filipino': { 'Quiz / FA': 0.25, 'LT': 0.35, 'AA': 0.40 }
 };
 
+const SUBJECT_ORDER = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Filipino", "English", "PEHM", "Social Science"];
+
+
+function sortSubjects(subjectList) {
+    subjectList.sort((a, b) => {
+        const indexA = SUBJECT_ORDER.indexOf(a.name);
+        const indexB = SUBJECT_ORDER.indexOf(b.name);
+        
+ 
+        if (indexA !== -1 && indexB !== -1) {
+            return indexA - indexB;
+        }
+
+        if (indexA !== -1) return -1;
+ 
+        if (indexB !== -1) return 1;
+
+        return a.name.localeCompare(b.name);
+    });
+}
+
+
 let currentActiveTab = 'dashboard-content';
 let currentFlashcardFolder = null;
+let currentReviewSessionCards = []; 
 let currentCardIndex = 0;
 let currentNotebook = null;
 let quillEditor = null;
@@ -163,7 +188,7 @@ const rightSidebar = document.querySelector('.right-sidebar');
 const mainContent = document.querySelector('.main-content');
 const gwaGuestMessage = document.getElementById('gwa-guest-message');
 const shareModal = document.getElementById('share-modal');
-const shareUsernameInput = document.getElementById('share-username-input');
+const shareUserEmailInput = document.getElementById('share-user-email-input'); 
 const executeShareBtn = document.getElementById('execute-share-btn');
 const settingsModal = document.getElementById('settings-modal');
 const rightSidebarSettingsBtn = document.getElementById('right-sidebar-settings-btn');
@@ -217,7 +242,6 @@ const pomodoroTaskSelect = document.getElementById('task-select');
 const pomodoroCurrentTask = document.getElementById('current-task');
 const customMinutesInput = document.getElementById('custom-minutes');
 
-// fixed
 const startManualFlipBtn = document.getElementById('start-manual-flip');
 const startAutoFlipBtn = document.getElementById('start-auto-flip');
 const startTypeAnswerBtn = document.getElementById('start-type-answer');
@@ -254,7 +278,7 @@ function saveAllData(options = {}) {
         theme,
         themeColors
     };
-    if (currentUser !== 'guest') {
+    if (currentUser !== 'guest' && currentUser) {
         DataService.saveData(currentUser, dataToSave);
     }
 
@@ -273,7 +297,6 @@ function saveAllData(options = {}) {
 /**
  * =============================================================================
  * EVENT LISTENERS: AUTHENTICATION
- * i think i hate firebase
  * =============================================================================
  */
 
@@ -355,8 +378,9 @@ function showCustomAlert(message, type = 'notification') {
     const alertModal = document.createElement('div');
     alertModal.className = 'modal-content';
     alertModal.style.maxWidth = '400px';
-
-    let title = (type === 'notification') ? 'Notification' : 'Alert';
+    
+   
+    let title = (type === 'notification') ? 'Success!' : 'Alert';
     let icon = (type === 'notification') ? 'fa-check-circle' : 'fa-exclamation-triangle';
 
     alertModal.innerHTML = `
@@ -434,7 +458,7 @@ function showCustomConfirm(message, onConfirm) {
     confirmModal.style.maxWidth = '400px';
     confirmModal.innerHTML = `
         <div class="modal-header">
-            <h3>Confirm Action</h3>
+            <h3><i class="fas fa-question-circle" style="margin-right: 10px;"></i>Confirm Action</h3>
             <button class="modal-close-btn cute-button-icon-only">&times;</button>
         </div>
         <p>${escapeHTML(message)}</p>
@@ -462,10 +486,14 @@ function showCustomConfirm(message, onConfirm) {
 
 function populateSubjectDropdowns() {
     const subjectSelects = document.querySelectorAll('.subject-select');
+    
+    const sortedSubjects = [...subjects];
+    sortSubjects(sortedSubjects);
+    
     subjectSelects.forEach(select => {
         const currentValue = select.value;
         select.innerHTML = '<option value="">-- Select Subject --</option>';
-        subjects.forEach(subject => {
+        sortedSubjects.forEach(subject => {
             const option = document.createElement('option');
             option.value = subject.name;
             option.textContent = subject.name;
@@ -502,10 +530,12 @@ function applyTheme(newTheme) {
     theme = newTheme;
     document.body.classList.toggle('dark-mode', theme === 'dark');
     themeToggleSwitch.checked = (theme === 'dark');
+
     applyCustomColors();
 }
 
 function applyCustomColors() {
+
     const colors = themeColors[theme] || {};
     const root = document.documentElement;
     const colorVars = ['--accent-color', '--bg-color-primary', '--bg-color-secondary', '--text-color-primary'];
@@ -514,13 +544,16 @@ function applyCustomColors() {
         if (colors[v]) {
             root.style.setProperty(v, colors[v]);
         } else {
+           
             root.style.removeProperty(v);
         }
     });
 
+
     const settingsColorPickers = settingsModal.querySelectorAll('input[type="color"]');
     settingsColorPickers.forEach(picker => {
         const varName = picker.dataset.var;
+        
         const currentVal = getComputedStyle(root).getPropertyValue(varName).trim();
         picker.value = colors[varName] || currentVal;
     });
@@ -562,8 +595,7 @@ function hideAuthModal() {
 function enterGuestMode() {
     currentUser = 'guest';
     hideAuthModal();
-
-    // only allow gwa calculator if ur a guest basically 
+    
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.disabled = (btn.dataset.tab !== 'gwa-content');
     });
@@ -580,6 +612,8 @@ function enterGuestMode() {
         previousGrade: null,
         currentGrade: null
     }));
+    
+    sortSubjects(subjects); 
 
     switchTab('gwa-content');
 
@@ -614,24 +648,13 @@ async function initializeApp(user) {
         e.projects = e.projects || [];
         e.tasks = e.tasks || [];
     });
+    
 
-    // 🔽 Added block: One-time check to add PEHM if missing
-    if (subjects && !subjects.some(s => s.name === 'PEHM')) {
-        subjects.push({
-            name: 'PEHM',
-            units: 1,
-            grade: null,
-            previousGrade: null,
-            currentGrade: null,
-            detailedGrades: {}
-        });
-        // Sort alphabetically for consistency
-        subjects.sort((a, b) => a.name.localeCompare(b.name));
-    }
-    // 🔼 End of added block
+    sortSubjects(subjects);
 
     theme = (savedData && typeof savedData.theme === 'string') ? savedData.theme : 'light';
-    themeColors = (savedData && typeof savedData.themeColors === 'object') ? savedData.themeColors : {};
+    themeColors = (savedData && typeof savedData.themeColors === 'object' && savedData.themeColors) ? savedData.themeColors : {};
+
 
     if (subjects.length === 0) {
         const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino", "PEHM"];
@@ -643,15 +666,15 @@ async function initializeApp(user) {
             currentGrade: null,
             detailedGrades: {}
         }));
+        sortSubjects(subjects); 
         saveAllData();
     }
 
-    usernameDisplay.textContent = user.email; // Use email from the Firebase user object
+    usernameDisplay.textContent = user.email;
     profilePic.src = pfp;
     pfpUrlInput.value = pfp;
 
     applyTheme(theme);
-    applyCustomColors();
     rightSidebar.classList.remove('hidden');
     mainContent.style.width = '';
     mainContent.style.marginLeft = '';
@@ -667,15 +690,8 @@ async function initializeApp(user) {
 
 auth.onAuthStateChanged(async user => {
     if (user) {
-     
-        console.log("User is logged in:", user.uid);
-        
-    
         await initializeApp(user); 
-        
     } else {
-      
-        console.log("User is logged out.");
         currentUser = null;
         showAuthModal();
     }
@@ -683,75 +699,104 @@ auth.onAuthStateChanged(async user => {
 
 /**
  * =============================================================================
- * FUNCTION: SHARING (fix: literally nothing here works KEK)
+ * FUNCTION: SHARING
  * =============================================================================
  */
 
 function openShareModal(id, type) {
     itemToShare = { id, type };
     closeAllModals();
-    shareUsernameInput.value = '';
+    shareUserEmailInput.value = '';
     modalOverlay.classList.remove('hidden');
     modalOverlay.appendChild(shareModal);
     shareModal.classList.remove('hidden');
-    shareUsernameInput.focus();
+    shareUserEmailInput.focus();
 }
 
-function handleExecuteShare() {
-    const targetUsername = shareUsernameInput.value.trim();
 
-    if (!targetUsername) return showCustomAlert("Please enter a username.", "alert");
-    if (targetUsername === currentUser) return showCustomAlert("You cannot share an item with yourself.", "alert");
-    if (!AuthService.userExists(targetUsername)) return showCustomAlert(`User "${escapeHTML(targetUsername)}" does not exist.`, "alert");
+async function handleExecuteShare() {
+    const targetEmail = shareUserEmailInput.value.trim().toLowerCase();
+    const currentUserEmail = auth.currentUser.email;
 
-    const targetUserData = DataService.loadData(targetUsername) || { subjects: [], tasks: [], flashcardFolders: [], notebooks: [], theme: 'light', extracurriculars: [] };
-    let itemCopy;
+    if (!targetEmail) return showCustomAlert("Please enter a user's email.", "alert");
+    if (targetEmail === currentUserEmail) return showCustomAlert("You cannot share an item with yourself.", "alert");
 
-    if (itemToShare.type === 'notebook') {
-        const originalItem = notebooks.find(n => n.id === itemToShare.id);
-        if (!originalItem) return showCustomAlert("Notebook not found.", "alert");
-        if (targetUserData.notebooks.some(n => n.originalId === originalItem.id)) return showCustomAlert(`This notebook has already been shared with ${escapeHTML(targetUsername)}.`, "alert");
+    try {
+        
+        const usersRef = db.collection('users');
+        const snapshot = await usersRef.where('email', '==', targetEmail).limit(1).get();
 
-        itemCopy = JSON.parse(JSON.stringify(originalItem));
-        itemCopy.isShared = true;
-        itemCopy.sharedBy = currentUser;
-        itemCopy.originalId = originalItem.id;
-        itemCopy.id = Date.now();
-        targetUserData.notebooks.push(itemCopy);
+        if (snapshot.empty) {
+            return showCustomAlert(`User with email "${escapeHTML(targetEmail)}" was not found.`, "alert");
+        }
+        
+        const targetUserId = snapshot.docs[0].id;
+        
+        
+        const targetAppData = await DataService.loadData(targetUserId) || { subjects: [], tasks: [], flashcardFolders: [], notebooks: [], extracurriculars: [] };
 
-    } else if (itemToShare.type === 'flashcardFolder') {
-        const originalItem = flashcardFolders.find(f => f.id === itemToShare.id);
-        if (!originalItem) return showCustomAlert("Flashcard folder not found.", "alert");
-        if (targetUserData.flashcardFolders.some(f => f.originalId === originalItem.id)) return showCustomAlert(`This folder has already been shared with ${escapeHTML(targetUsername)}.`, "alert");
+        let itemCopy;
+        let successMessage = '';
+        
+        
+        if (itemToShare.type === 'notebook') {
+            const originalItem = notebooks.find(n => n.id === itemToShare.id);
+            if (!originalItem) return showCustomAlert("Notebook not found.", "alert");
+            if ((targetAppData.notebooks || []).some(n => n.originalId === originalItem.id)) return showCustomAlert(`This notebook has already been shared with ${escapeHTML(targetEmail)}.`, "alert");
 
-        itemCopy = JSON.parse(JSON.stringify(originalItem));
-        itemCopy.isShared = true;
-        itemCopy.sharedBy = currentUser;
-        itemCopy.originalId = originalItem.id;
-        itemCopy.id = Date.now();
-        targetUserData.flashcardFolders.push(itemCopy);
-    } else if (itemToShare.type === 'task') {
-        const originalItem = tasks.find(t => t.id === itemToShare.id);
-        if (!originalItem) return showCustomAlert("Task not found.", "alert");
-        if (targetUserData.tasks.some(t => t.originalId === originalItem.id)) return showCustomAlert(`This task has already been shared with ${escapeHTML(targetUsername)}.`, "alert");
+            itemCopy = JSON.parse(JSON.stringify(originalItem));
+            itemCopy.isShared = true;
+            itemCopy.sharedBy = currentUserEmail;
+            itemCopy.originalId = originalItem.id; 
+            itemCopy.id = Date.now(); 
+            targetAppData.notebooks = targetAppData.notebooks || [];
+            targetAppData.notebooks.push(itemCopy);
+            successMessage = 'Notebook';
 
-        itemCopy = JSON.parse(JSON.stringify(originalItem));
-        itemCopy.isShared = true;
-        itemCopy.sharedBy = currentUser;
-        itemCopy.originalId = originalItem.id;
-        itemCopy.id = Date.now();
-        itemCopy.done = false;
-        targetUserData.tasks.push(itemCopy);
+        } else if (itemToShare.type === 'flashcardFolder') {
+            const originalItem = flashcardFolders.find(f => f.id === itemToShare.id);
+            if (!originalItem) return showCustomAlert("Flashcard folder not found.", "alert");
+            if ((targetAppData.flashcardFolders || []).some(f => f.originalId === originalItem.id)) return showCustomAlert(`This folder has already been shared with ${escapeHTML(targetEmail)}.`, "alert");
+
+            itemCopy = JSON.parse(JSON.stringify(originalItem));
+            itemCopy.isShared = true;
+            itemCopy.sharedBy = currentUserEmail;
+            itemCopy.originalId = originalItem.id;
+            itemCopy.id = Date.now();
+            targetAppData.flashcardFolders = targetAppData.flashcardFolders || [];
+            targetAppData.flashcardFolders.push(itemCopy);
+            successMessage = 'Flashcard Folder';
+
+        } else if (itemToShare.type === 'task') {
+            const originalItem = tasks.find(t => t.id === itemToShare.id);
+            if (!originalItem) return showCustomAlert("Task not found.", "alert");
+            if ((targetAppData.tasks || []).some(t => t.originalId === originalItem.id)) return showCustomAlert(`This task has already been shared with ${escapeHTML(targetEmail)}.`, "alert");
+
+            itemCopy = JSON.parse(JSON.stringify(originalItem));
+            itemCopy.isShared = true;
+            itemCopy.sharedBy = currentUserEmail;
+            itemCopy.originalId = originalItem.id;
+            itemCopy.id = Date.now();
+            itemCopy.done = false; 
+            targetAppData.tasks = targetAppData.tasks || [];
+            targetAppData.tasks.push(itemCopy);
+            successMessage = 'Task';
+        }
+
+        await DataService.saveData(targetUserId, targetAppData);
+        showCustomAlert(`${successMessage} successfully shared with ${escapeHTML(targetEmail)}!`);
+        closeAllModals();
+
+    } catch (error) {
+        console.error("Sharing error:", error);
+        showCustomAlert("An error occurred while trying to share. Please try again.", "alert");
     }
-
-    DataService.saveData(targetUsername, targetUserData);
-    showCustomAlert(`Successfully shared with ${escapeHTML(targetUsername)}!`);
-    closeAllModals();
 }
+
 
 /**
  * =============================================================================
- * FUNCTION: SUBJECT MANAGEMENT ( no need for fix... )
+ * FUNCTION: SUBJECT MANAGEMENT
  * =============================================================================
  */
 function openAddSubjectModal() {
@@ -830,8 +875,8 @@ saveNewSubjectBtn.addEventListener('click', () => {
         });
         showCustomAlert(`Subject "${newName}" added!`);
     }
-
-    subjects.sort((a, b) => a.name.localeCompare(b.name));
+    
+    sortSubjects(subjects); 
     saveAllData();
     populateSubjectDropdowns();
     renderDashboard();
@@ -842,7 +887,7 @@ saveNewSubjectBtn.addEventListener('click', () => {
 
 /**
  * =============================================================================
- * FUNCTION: DASHBOARD (no need for fixing...probs)
+ * FUNCTION: DASHBOARD
  * =============================================================================
  */
 function renderDashboard() {
@@ -851,6 +896,7 @@ function renderDashboard() {
         dashboardSubjectsGrid.innerHTML = '<p class="empty-message">No subjects added yet. Add one to get started!</p>';
         return;
     }
+    
     subjects.forEach((subject) => {
         const card = document.createElement('div');
         card.className = 'dashboard-card';
@@ -869,18 +915,18 @@ function renderDashboard() {
             <div class="card-item-icons">
                 <span class="icon-group" title="${taskCount} Tasks"><i class="fas fa-clipboard-list"></i> ${taskCount}</span>
                 <span class="icon-group" title="${notebookCount} Notebooks"><i class="fas fa-book"></i> ${notebookCount}</span>
-                <span class="icon-group" title="${flashcardCount} Flashcard Folders"><i class="fas fa-sticky-note"></i> ${flashcardCount}</span>
+                <span class="icon-group" title="${flashcardCount} Flashcard Folders"><i class="fas fa-layer-group"></i> ${flashcardCount}</span>
             </div>
             <div class="card-actions">
                 <button class="edit-subject-btn cute-button-icon-only" title="Edit Subject"><i class="fas fa-pencil-alt"></i></button>
                 <button class="delete-subject-btn cute-button-icon-only" title="Delete Subject"><i class="fas fa-trash"></i></button>
             </div>
         `;
-
-     
         
-        card.addEventListener('click', () => openSubjectDetail(subject.name));
-        
+        card.addEventListener('click', (e) => {
+            if(e.target.closest('.card-actions')) return;
+            openSubjectDetail(subject.name)
+        });
         
         card.querySelector('.edit-subject-btn').addEventListener('click', (e) => {
             e.stopPropagation();
@@ -891,7 +937,6 @@ function renderDashboard() {
             handleDeleteSubject(subject.name);
         });
         
-
         dashboardSubjectsGrid.appendChild(card);
     });
 }
@@ -948,7 +993,7 @@ function renderSubjectDetailContent(subjectName, tabId) {
         filteredFlashcards.forEach(folder => {
             const card = document.createElement('div');
             card.className = 'folder-card';
-            card.innerHTML = `<h4>${escapeHTML(folder.name)}</h4><p>${folder.cards.length} cards</p>`;
+            card.innerHTML = `<h4><i class="fas fa-layer-group"></i> ${escapeHTML(folder.name)}</h4><p>${folder.cards.length} cards</p>`;
             card.addEventListener('click', () => { closeAllModals(); switchTab('flashcards-content'); openFlashcardFolder(folder.id); });
             subjectFlashcardsList.appendChild(card);
         });
@@ -958,7 +1003,6 @@ function renderSubjectDetailContent(subjectName, tabId) {
 /**
  * =============================================================================
  * FUNCTION: SIDEBAR RIGHT SIDE
- * this works pa naman, don't fix it yet until u want a diff ui 
  * =============================================================================
  */
 function renderRightSidebarTasks() {
@@ -968,30 +1012,32 @@ function renderRightSidebarTasks() {
     dueTomorrowList.innerHTML = '';
     due7DaysList.innerHTML = '';
 
+    const toYYYYMMDD = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
+    
+    const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
-
-    const sevenDaysFromNow = new Date(today);
+    
+    const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
 
-    const tasksDueTomorrow = [];
-    const tasksDueIn7Days = [];
-
-    tasks.filter(task => !task.done && task.dueDate).forEach(task => {
-        const taskDueDate = new Date(task.dueDate + 'T00:00:00');
-        if (taskDueDate.getTime() === tomorrow.getTime()) {
-            tasksDueTomorrow.push(task);
-        } else if (taskDueDate > tomorrow && taskDueDate <= sevenDaysFromNow) {
-            tasksDueIn7Days.push(task);
-        }
-    });
-
+    const tomorrowStr = toYYYYMMDD(tomorrow);
+    const sevenDaysFromNowStr = toYYYYMMDD(sevenDaysFromNow);
+    const todayStr = toYYYYMMDD(today);
+    
+    const tasksDueTomorrow = tasks.filter(task => !task.done && task.dueDate === tomorrowStr);
+    const tasksDueIn7Days = tasks.filter(task => !task.done && task.dueDate > tomorrowStr && task.dueDate <= sevenDaysFromNowStr);
+    
     const renderTaskListItem = (list, task) => {
         const li = document.createElement('li');
-        li.innerHTML = `<div class="task-content"><span class="task-name">${escapeHTML(task.name)}</span><span class="task-course">${escapeHTML(task.subject)}</span></div><span class="task-date">${new Date(task.dueDate+'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>`;
+        const displayDate = new Date(task.dueDate + 'T00:00:00');
+        li.innerHTML = `<div class="task-content"><span class="task-name">${escapeHTML(task.name)}</span><span class="task-course">${escapeHTML(task.subject)}</span></div><span class="task-date">${displayDate.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</span>`;
         list.appendChild(li);
     };
 
@@ -1004,7 +1050,7 @@ function renderRightSidebarTasks() {
     if (tasksDueIn7Days.length === 0) {
         due7DaysList.innerHTML = '<li class="empty-list-item">No tasks due in the next 7 days.</li>';
     } else {
-        tasksDueIn7Days.forEach(task => renderTaskListItem(due7DaysList, task));
+        tasksDueIn7Days.sort((a,b) => a.dueDate.localeCompare(b.dueDate)).forEach(task => renderTaskListItem(due7DaysList, task));
     }
     updateProgressCircle();
 }
@@ -1040,7 +1086,6 @@ rightSidebarSettingsBtn.addEventListener('click', (e) => {
 /**
  * =============================================================================
  * FUNCTION: GWA CALCULATOR
- * no need for fixes YET.. maybe ui in the future
  * =============================================================================
  */
 function roundToNearestGrade(calculatedGrade) {
@@ -1068,14 +1113,13 @@ function handleGradeChange(e) {
     if (previousGrade !== null && currentGrade !== null) {
         const calculatedGrade = (currentGrade * (2 / 3)) + (previousGrade * (1 / 3));
         subjectToUpdate.grade = roundToNearestGrade(calculatedGrade);
+    } else if (currentGrade !== null && previousGrade === null) {
+        subjectToUpdate.grade = currentGrade;
     } else {
         subjectToUpdate.grade = null;
     }
     
-    
     saveAllData({ skipRender: true }); 
-    
-    
     renderGwaCalculator(); 
 }
 
@@ -1134,7 +1178,6 @@ function renderGwaCalculator() {
 
     if (totalUnitsWithGrades > 0) {
         const finalGwa = totalWeightedGrade / totalUnitsWithGrades;
-        // rounding to two decimal places kek
         gwaDisplay.textContent = `Your GWA: ${finalGwa.toFixed(2)}`;
     } else {
         gwaDisplay.textContent = 'Select grades to calculate your GWA.';
@@ -1143,7 +1186,7 @@ function renderGwaCalculator() {
 
 /**
  * =============================================================================
- * FUNCTION: GRADE CALCU PER SUBJECT ( no need for fix i guess..? just add disclaimers ig)
+ * FUNCTION: GRADE CALCU PER SUBJECT
  * =============================================================================
  */
 function transmuteGrade(percentage) {
@@ -1162,8 +1205,11 @@ function transmuteGrade(percentage) {
 }
 
 function setupGradeCalculator() {
+    
+    const sortedSubjects = [...subjects];
+    sortSubjects(sortedSubjects);
     gradeCalcSubjectSelect.innerHTML = '<option value="">-- Select a Subject --</option>' +
-        subjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+        sortedSubjects.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
     gradeCalcComponentsGrid.innerHTML = '';
     gradeCalcResults.textContent = 'Select a subject to start calculating.';
@@ -1282,38 +1328,21 @@ function recalculateAndDisplayGrade(subjectName) {
         });
     }
 
-    // =======================================================
-    // ===== debug for the actual fricking percentage  =======
-    // =======================================================
-    console.clear(); // clear console
-    console.log(`--- Grade Calculation for: ${subjectName} ---`);
-    console.log(`Total Weighted Score (decimal):`, totalWeightedScore);
-
     const finalPercentage = totalWeightedScore * 100;
     const transmuted = transmuteGrade(finalPercentage);
 
-    console.log(`Final Percentage (what you see):`, finalPercentage);
-    console.log(`Transmuted Grade (what you get):`, transmuted);
-    console.log(`-------------------------------------------`);
-    // =====================================================
-    // ===== end debug for percentage kekekekekekekeke =====
-    // =====================================================
-
-
-    // percentage + final grade to show 
     if (componentKey) {
         gradeCalcResults.innerHTML = `Raw Percentage: <strong>${finalPercentage.toFixed(2)}%</strong> / Calculated Grade: <strong>${transmuted ? transmuted.toFixed(2) : 'N/A'}</strong>`;
     } else {
         gradeCalcResults.textContent = 'Grade components not defined for this subject.';
     }
     
-    // save scors
     saveAllData();
 }
 
 /**
  * =============================================================================
- * FUNCTION: CALENDAR (fix: nandun yata(??) yung error ng day after)
+ * FUNCTION: CALENDAR
  * =============================================================================
  */
 function renderCalendar() {
@@ -1331,9 +1360,13 @@ function renderCalendar() {
 
     for (let i = 1; i <= daysInMonth; i++) {
         const dayDate = new Date(year, month, i);
-        const dateString = dayDate.toISOString().slice(0, 10);
+        const dateString = new Date(Date.UTC(year, month, i)).toISOString().slice(0, 10);
+        
+        const today = new Date();
+        const todayString = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())).toISOString().slice(0, 10);
+        
         let dayClass = 'calendar-day';
-        if (i === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+        if (dateString === todayString) {
             dayClass += ' today';
         }
 
@@ -1373,7 +1406,7 @@ nextMonthBtn.addEventListener('click', () => {
 
 /**
  * =============================================================================
- * FUNCTION: TODO LIST (already okay, no need for improvements YET)
+ * FUNCTION: TODO LIST
  * =============================================================================
  */
 function renderTasks() {
@@ -1404,7 +1437,7 @@ function renderTasks() {
             const task = tasks.find(t => t.id === taskId);
             if (task) {
                 task.done = e.target.checked;
-                saveAllData();
+                saveAllData(); 
                 renderTasks();
             }
         });
@@ -1415,7 +1448,7 @@ function renderTasks() {
             const taskId = parseInt(e.currentTarget.dataset.id);
             showCustomConfirm("Are you sure you want to delete this task?", () => {
                 tasks = tasks.filter(t => t.id !== taskId);
-                saveAllData();
+                saveAllData(); 
                 renderTasks();
             });
         });
@@ -1447,14 +1480,14 @@ document.getElementById('todo-form').addEventListener('submit', (e) => {
         dueDate,
         done: false,
     });
-    saveAllData();
+    saveAllData(); 
     renderTasks();
     e.target.reset();
 });
 
 /**
  * =============================================================================
- * FUNCTION: EXTRACURIC (fix: it's kinda mid but its okay naman for smth beta)
+ * FUNCTION: EXTRACURIC
  * =============================================================================
  */
 function renderExtracurriculars() {
@@ -1646,26 +1679,45 @@ extracurricularDetailModal.addEventListener('click', (e) => {
 
 /**
  * =============================================================================
- * FUNCTINO: NOTES (fix: di masyadong appealing. i'd still choose google docs over it)
+ * FUNCTION: NOTES
+ * i don't like this but oh well 
  * =============================================================================
  */
+
+function generatePreviewFromDelta(delta) {
+    if (!delta || !Array.isArray(delta.ops)) return '';
+    let text = delta.ops
+        .filter(op => typeof op.insert === 'string')
+        .map(op => op.insert)
+        .join('');
+    
+    text = text.replace(/\n\s*\n/g, '\n').trim();
+    return text.slice(0, 120) + (text.length > 120 ? '...' : '');
+}
+ 
 function renderNotebooks() {
     const notebooksGrid = document.getElementById('notebooks-grid');
     notebooksGrid.innerHTML = '';
     if (notebooks.length === 0) {
-        notebooksGrid.innerHTML = '<p class="empty-message">No notebooks created yet.</p>';
+        notebooksGrid.innerHTML = '<p class="empty-message">No notebooks created yet. Create one to get started!</p>';
         return;
     }
     notebooks.forEach(notebook => {
         const card = document.createElement('div');
         card.className = 'notebook-card';
+        // preview of notes
+        const contentPreview = notebook.type === 'text' && notebook.content 
+                               ? generatePreviewFromDelta(notebook.content)
+                               : 'No content yet.';
+                               
         card.innerHTML = `
              <div class="resource-actions">
                 ${!notebook.isShared ? `<button class="action-btn share-notebook-btn" title="Share Notebook" data-id="${notebook.id}"><i class="fas fa-share-alt"></i></button>` : ''}
                 <button class="action-btn delete-notebook-btn" title="Delete Notebook" data-id="${notebook.id}"><i class="fas fa-trash"></i></button>
             </div>
             <h4><i class="fas fa-${notebook.type === 'text' ? 'file-alt' : 'paint-brush'}"></i> ${escapeHTML(notebook.title)}</h4>
-            <p>Subject: ${escapeHTML(notebook.subject)}</p>
+            <p class="notebook-subject">Subject: ${escapeHTML(notebook.subject)}</p>
+            <p class="notebook-preview">${escapeHTML(contentPreview)}</p>
             ${notebook.isShared ? `<p class="shared-by-indicator">Shared by ${escapeHTML(notebook.sharedBy)}</p>` : ''}
         `;
 
@@ -1766,13 +1818,13 @@ saveNotebookBtn.addEventListener('click', () => {
 
 /**
  * =============================================================================
- * FUNCTION: FLASHCARDS (fixed: added new review modes: havent tested)
+ * FUNCTION: FLASHCARDS
  * =============================================================================
  */
 function showFlashcardFoldersView() {
     document.querySelector('.flashcard-folders-view').classList.remove('hidden');
     document.querySelector('.flashcard-detail-view').classList.add('hidden');
-    document.querySelector('.flashcard-flipper-view').classList.add('hidden'); // Modified
+    document.querySelector('.flashcard-flipper-view').classList.add('hidden');
     document.querySelector('.flashcard-review-type-view').classList.add('hidden');
     renderFlashcardFolders();
 }
@@ -1787,9 +1839,8 @@ function renderFlashcardFolders() {
     flashcardFolders.forEach(folder => {
         const card = document.createElement('div');
         card.className = 'folder-card';
-        // add and delete function: out for testing 
         card.innerHTML = `
-            <h4>${escapeHTML(folder.name)}</h4>
+            <h4><i class="fas fa-layer-group"></i> ${escapeHTML(folder.name)}</h4>
             <p>${escapeHTML(folder.subject)}</p>
             <p>${folder.cards.length} cards</p>
             ${folder.isShared ? `<p class="shared-by-indicator">Shared by ${escapeHTML(folder.sharedBy)}</p>` : ''}
@@ -1801,13 +1852,11 @@ function renderFlashcardFolders() {
                 ` : ''}
             </div>
         `;
-        // click 
         card.addEventListener('click', (e) => {
             if (e.target.closest('.action-btn')) return;
             openFlashcardFolder(folder.id);
         });
         
-        // share (fix: doesnt work kek)
         card.querySelector('.share-folder-btn')?.addEventListener('click', e => {
             e.stopPropagation();
             openShareModal(folder.id, 'flashcardFolder');
@@ -1827,14 +1876,13 @@ document.getElementById('folders-grid').addEventListener('click', (e) => {
         const folderToEdit = flashcardFolders.find(f => f.id === folderId);
         if (folderToEdit) {
             const newName = prompt("Enter new folder name:", folderToEdit.name);
-            if (!newName) return; // cancel 
+            if (newName === null || newName.trim() === '') return;
 
             const newSubject = prompt("Enter new subject:", folderToEdit.subject);
-            if (!newSubject) return; // cancel 
+            if (newSubject === null) return; 
 
-            // subject exists
             if (subjects.find(s => s.name.toLowerCase() === newSubject.toLowerCase())) {
-                folderToEdit.name = newName;
+                folderToEdit.name = newName.trim();
                 folderToEdit.subject = newSubject;
                 saveAllData();
                 renderFlashcardFolders();
@@ -1881,7 +1929,7 @@ function openFlashcardFolder(folderId) {
 
     document.querySelector('.flashcard-folders-view').classList.add('hidden');
     document.querySelector('.flashcard-detail-view').classList.remove('hidden');
-    document.querySelector('.flashcard-flipper-view').classList.add('hidden'); // Modified
+    document.querySelector('.flashcard-flipper-view').classList.add('hidden');
     document.querySelector('.flashcard-review-type-view').classList.add('hidden');
 
     document.getElementById('current-folder-name').textContent = `Folder: ${currentFlashcardFolder.name}`;
@@ -1890,8 +1938,8 @@ function openFlashcardFolder(folderId) {
     document.getElementById('add-flashcard-btn').style.display = isReadOnly ? 'none' : 'inline-flex';
     
     const hasCards = currentFlashcardFolder.cards.length > 0;
-    startManualFlipBtn.disabled = !hasCards; // Modified
-    startAutoFlipBtn.disabled = !hasCards; // Modified
+    startManualFlipBtn.disabled = !hasCards;
+    startAutoFlipBtn.disabled = !hasCards;
     startTypeAnswerBtn.disabled = !hasCards;
 
     renderFlashcardsList(currentFlashcardFolder.id);
@@ -1927,7 +1975,6 @@ function renderFlashcardsList(folderId) {
     });
 }
 
-// event listener
 document.getElementById('flashcards-list').addEventListener('click', (e) => {
     const editBtn = e.target.closest('.edit-flashcard-btn');
     if (editBtn) {
@@ -1945,7 +1992,6 @@ document.getElementById('flashcards-list').addEventListener('click', (e) => {
             currentFlashcardFolder.cards = currentFlashcardFolder.cards.filter(c => c.id !== cardId);
             saveAllData();
             renderFlashcardsList(currentFlashcardFolder.id);
-            // no more review if done 
             const hasCards = currentFlashcardFolder.cards.length > 0;
             startManualFlipBtn.disabled = !hasCards;
             startAutoFlipBtn.disabled = !hasCards;
@@ -1957,19 +2003,19 @@ document.getElementById('flashcards-list').addEventListener('click', (e) => {
 
 document.getElementById('add-flashcard-btn').addEventListener('click', () => {
     if (!currentFlashcardFolder) return;
-    openFlashcardModal(); // modal for new card
+    openFlashcardModal();
 });
 
 function openFlashcardModal(card = null) {
     closeAllModals();
     
-    if (card) { // editing new card
+    if (card) {
         currentlyEditingCardId = card.id;
         document.getElementById('flashcard-modal-title').textContent = "Edit Flashcard";
         flashcardFrontInput.value = card.front;
         flashcardBackInput.value = card.back;
         saveFlashcardBtn.textContent = "Save Changes";
-    } else { // adding new card
+    } else {
         currentlyEditingCardId = null;
         document.getElementById('flashcard-modal-title').textContent = "Add Flashcard";
         flashcardFrontInput.value = '';
@@ -1987,29 +2033,37 @@ saveFlashcardBtn.addEventListener('click', () => {
     const back = flashcardBackInput.value.trim();
     if (!front || !back || !currentFlashcardFolder) return showCustomAlert("Front and back fields are required.", "alert");
 
-    if (currentlyEditingCardId) { // editing
+    if (currentlyEditingCardId) {
         const cardToUpdate = currentFlashcardFolder.cards.find(c => c.id === currentlyEditingCardId);
         if (cardToUpdate) {
             cardToUpdate.front = front;
             cardToUpdate.back = back;
         }
-    } else { // adding new card
+    } else {
         currentFlashcardFolder.cards.push({ id: Date.now(), front, back });
     }
 
     saveAllData();
     renderFlashcardsList(currentFlashcardFolder.id);
     closeAllModals();
-    currentlyEditingCardId = null; // reset editing
+    currentlyEditingCardId = null;
 });
 
-// modes
-
-function startFlipperReview(isAuto) {
+// FIX: start of review to shuffle cards
+function startReviewSession() {
     if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
+    // actual shuffle
+    currentReviewSessionCards = [...currentFlashcardFolder.cards].sort(() => Math.random() - 0.5);
     currentCardIndex = 0;
     
     document.querySelector('.flashcard-detail-view').classList.add('hidden');
+}
+
+
+function startFlipperReview(isAuto) {
+    startReviewSession();
+    if (currentReviewSessionCards.length === 0) return;
+
     document.querySelector('.flashcard-flipper-view').classList.remove('hidden');
     document.getElementById('flipper-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
     
@@ -2027,13 +2081,13 @@ function startFlipperReview(isAuto) {
 function displayFlipperCard(isAuto) {
     if (reviewTimer.timerId) clearInterval(reviewTimer.timerId);
 
-    const card = currentFlashcardFolder.cards[currentCardIndex];
+    const card = currentReviewSessionCards[currentCardIndex];
     flipperCardFront.textContent = card.front;
     flipperCardBack.textContent = card.back;
     flipperFlashcardDisplay.classList.remove('flipped');
     
     prevFlipperCardBtn.disabled = (currentCardIndex === 0);
-    nextFlipperCardBtn.disabled = (currentCardIndex >= currentFlashcardFolder.cards.length - 1);
+    nextFlipperCardBtn.disabled = (currentCardIndex >= currentReviewSessionCards.length - 1);
 
     if (isAuto) {
         startCardTimer();
@@ -2056,16 +2110,16 @@ function startCardTimer() {
 
 
 function startTypeAnswerReview() {
-    if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
-    currentCardIndex = 0;
-    document.querySelector('.flashcard-detail-view').classList.add('hidden');
+    startReviewSession();
+    if (currentReviewSessionCards.length === 0) return;
+
     document.querySelector('.flashcard-review-type-view').classList.remove('hidden');
     document.getElementById('type-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
     displayTypeAnswerCard();
 }
 
 function displayTypeAnswerCard() {
-    const card = currentFlashcardFolder.cards[currentCardIndex];
+    const card = currentReviewSessionCards[currentCardIndex];
     typeCardFront.textContent = card.front;
     typeCardBack.textContent = card.back;
 
@@ -2079,7 +2133,6 @@ function displayTypeAnswerCard() {
     nextTypeCardBtn.disabled = true;
 }
 
-// EVENT LISTENER FOR MODESS
 startManualFlipBtn.addEventListener('click', () => startFlipperReview(false));
 startAutoFlipBtn.addEventListener('click', () => startFlipperReview(true));
 startTypeAnswerBtn.addEventListener('click', startTypeAnswerReview);
@@ -2088,13 +2141,12 @@ flipFlipperCardBtn.addEventListener('click', () => flipperFlashcardDisplay.class
 prevFlipperCardBtn.addEventListener('click', () => {
     if (currentCardIndex > 0) {
         currentCardIndex--;
-        // auto timer check
         const isAuto = !document.getElementById('flipper-timer-display').classList.contains('hidden');
         displayFlipperCard(isAuto);
     }
 });
 nextFlipperCardBtn.addEventListener('click', () => {
-    if (currentCardIndex < currentFlashcardFolder.cards.length - 1) {
+    if (currentCardIndex < currentReviewSessionCards.length - 1) {
         currentCardIndex++;
         const isAuto = !document.getElementById('flipper-timer-display').classList.contains('hidden');
         displayFlipperCard(isAuto);
@@ -2106,7 +2158,7 @@ nextFlipperCardBtn.addEventListener('click', () => {
 
 
 checkTypeAnswerBtn.addEventListener('click', () => {
-    const card = currentFlashcardFolder.cards[currentCardIndex];
+    const card = currentReviewSessionCards[currentCardIndex];
     const userAnswer = typeAnswerInput.value.trim();
     if (userAnswer.toLowerCase() === card.back.toLowerCase()) {
         typeAnswerFeedback.textContent = "Correct!";
@@ -2119,21 +2171,24 @@ checkTypeAnswerBtn.addEventListener('click', () => {
     checkTypeAnswerBtn.disabled = true;
     revealTypeAnswerBtn.disabled = true;
     nextTypeCardBtn.disabled = false;
+    nextTypeCardBtn.focus();
 });
 
 revealTypeAnswerBtn.addEventListener('click', () => {
     typeCardBack.classList.remove('hidden');
-    typeAnswerFeedback.textContent = `The answer is: ${currentFlashcardFolder.cards[currentCardIndex].back}`;
+    typeAnswerFeedback.textContent = `The answer is: ${currentReviewSessionCards[currentCardIndex].back}`;
     typeAnswerInput.disabled = true;
     checkTypeAnswerBtn.disabled = true;
     revealTypeAnswerBtn.disabled = true;
     nextTypeCardBtn.disabled = false;
+    nextTypeCardBtn.focus();
 });
 
 nextTypeCardBtn.addEventListener('click', () => {
-    if (currentCardIndex < currentFlashcardFolder.cards.length - 1) {
+    if (currentCardIndex < currentReviewSessionCards.length - 1) {
         currentCardIndex++;
         displayTypeAnswerCard();
+        typeAnswerInput.focus();
     } else {
         showCustomAlert("Review complete!");
         openFlashcardFolder(currentFlashcardFolder.id);
@@ -2142,14 +2197,15 @@ nextTypeCardBtn.addEventListener('click', () => {
 
 document.getElementById('back-to-folders').addEventListener('click', showFlashcardFoldersView);
 document.getElementById('back-from-flipper-review').addEventListener('click', () => {
-    if (reviewTimer.timerId) clearInterval(reviewTimer.timerId); // STOP THE TIMER
+    if (reviewTimer.timerId) clearInterval(reviewTimer.timerId);
     openFlashcardFolder(currentFlashcardFolder.id)
 });
 document.getElementById('back-from-type-review').addEventListener('click', () => openFlashcardFolder(currentFlashcardFolder.id));
 
 /**
  * =============================================================================
- * FUNCTION: POMODORO (fix: medyo panget yung design IJBOL)
+ * FUNCTION: POMODORO
+ * fix: made ui slightly better
  * =============================================================================
  */
 function updatePomodoroDisplay() {
@@ -2157,6 +2213,11 @@ function updatePomodoroDisplay() {
     const seconds = pomodoro.timeLeft % 60;
     pomodoroMinutes.textContent = String(minutes).padStart(2, '0');
     pomodoroSeconds.textContent = String(seconds).padStart(2, '0');
+    
+    
+    if (pomodoro.timerId) {
+        document.title = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')} - Working`;
+    }
 }
 
 function updatePomodoroTasks() {
@@ -2175,13 +2236,15 @@ function startTimer() {
     pomodoro.isPaused = false;
     startTimerBtn.disabled = true;
     pauseTimerBtn.disabled = false;
+    document.querySelector('.pomodoro-timer-screen').classList.add('running'); // UI IMPROVEMENT: For potential CSS animations
     pomodoro.timerId = setInterval(() => {
         pomodoro.timeLeft--;
         updatePomodoroDisplay();
         if (pomodoro.timeLeft <= 0) {
             clearInterval(pomodoro.timerId);
             pomodoro.timerId = null;
-            showCustomAlert("Pomodoro session finished!");
+            document.title = "Time's up! 🎉";
+            showCustomAlert("Pomodoro session finished! Take a short break.", "notification");
             resetTimer();
         }
     }, 1000);
@@ -2193,6 +2256,8 @@ function pauseTimer() {
     pomodoro.timerId = null;
     startTimerBtn.disabled = false;
     pauseTimerBtn.disabled = true;
+    document.querySelector('.pomodoro-timer-screen').classList.remove('running');
+    document.title = "Paused | schlKatsu";
 }
 
 function resetTimer() {
@@ -2200,11 +2265,13 @@ function resetTimer() {
     pomodoro.timerId = null;
     pomodoro.isPaused = true;
     const customMins = parseInt(customMinutesInput.value);
-    pomodoro.defaultTime = (customMins > 0) ? customMins * 60 : 25 * 60;
+    pomodoro.defaultTime = (customMins > 0 && customMins <= 120) ? customMins * 60 : 25 * 60;
     pomodoro.timeLeft = pomodoro.defaultTime;
     updatePomodoroDisplay();
     startTimerBtn.disabled = false;
     pauseTimerBtn.disabled = true;
+    document.querySelector('.pomodoro-timer-screen').classList.remove('running');
+    document.title = "schlkatsu by rei";
 }
 
 startTimerBtn.addEventListener('click', startTimer);
@@ -2220,13 +2287,11 @@ updatePomodoroDisplay();
 /**
  * =============================================================================
  * FUNCTION: Modal fixing
- * pls kill me 
+ * don't fix YET 
  * =============================================================================
  */
-// click listener
 modalOverlay.addEventListener('click', (e) => {
-
-    if (e.target === modalOverlay || e.target.closest('.modal-close-btn')) {
+    if (e.target === modalOverlay) {
         closeAllModals();
     }
 });
@@ -2234,12 +2299,11 @@ modalOverlay.addEventListener('click', (e) => {
 /**
  * =============================================================================
  * FUNCTION: EVENT LISTENERS
- * html button to functions 
+ * dont fix with question mark
  * =============================================================================
  */
 document.addEventListener('DOMContentLoaded', () => {
 
-    // sidebar debug
     const sidebar = document.querySelector('.left-sidebar');
     sidebar.addEventListener('click', (e) => {
         const tabButton = e.target.closest('.tab-btn');
@@ -2249,7 +2313,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // closing modal
     const modalOverlay = document.getElementById('modal-overlay');
     modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay || e.target.closest('.modal-close-btn')) {
@@ -2257,7 +2320,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    //  notebook stuff 
+    executeShareBtn.addEventListener('click', handleExecuteShare);
+
     const createNotebookBtn = document.getElementById('create-notebook-btn');
     const notebookTypeModal = document.getElementById('notebook-type-modal');
     const createTextNotebookBtn = document.getElementById('create-text-notebook-btn');
@@ -2274,7 +2338,6 @@ document.addEventListener('DOMContentLoaded', () => {
         createNewNotebook('text');
     });
     
-    // settingsssss
     const saveSettingsBtn = document.getElementById('save-settings-btn');
     const pfpUrlInput = document.getElementById('pfp-url-input');
     const themeToggleSwitch = document.getElementById('theme-toggle');
@@ -2282,29 +2345,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     saveSettingsBtn.addEventListener('click', async () => {
         const newTheme = themeToggleSwitch.checked ? 'dark' : 'light';
-        applyTheme(newTheme);
+      
+        theme = newTheme; 
 
-        // custom stuff i dont think works yet
-        themeColors[theme] = {};
+        
+        if (!themeColors) themeColors = {}; 
+        themeColors[theme] = themeColors[theme] || {}; 
         settingsModal.querySelectorAll('input[type="color"]').forEach(picker => {
             themeColors[theme][picker.dataset.var] = picker.value;
         });
-        applyCustomColors();
+        
+        applyTheme(newTheme);
 
-        // update pfp 
         const newPfpUrl = pfpUrlInput.value.trim();
-        if (newPfpUrl) {
-            await AuthService.updateUserPfp(currentUser, newPfpUrl);
-            profilePic.src = newPfpUrl;
+        if (newPfpUrl && currentUser !== 'guest') {
+            try {
+                // url validation 
+                new URL(newPfpUrl);
+                await AuthService.updateUserPfp(currentUser, newPfpUrl);
+                profilePic.src = newPfpUrl;
+            } catch (_) {
+                showCustomAlert("The provided PFP URL is not valid.", "alert");
+                return;
+            }
         }
 
         saveAllData({ skipRender: true });
-        showCustomAlert('Settings saved!');
+        showCustomAlert('Settings saved!', 'notification');
         closeAllModals();
+    });
+    
+    themeToggleSwitch.addEventListener('change', (e) => {
+        // theme changing 
+        applyTheme(e.target.checked ? 'dark' : 'light');
     });
 
     resetThemeBtn.addEventListener('click', () => {
-        themeColors[theme] = {};
-        applyCustomColors();
+        if(themeColors) themeColors[theme] = {};
+        applyCustomColors(); // applies the css styles normally 
+        showCustomAlert(`Colors for ${theme} mode have been reset.`, 'notification');
     });
 });
