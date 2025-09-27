@@ -126,6 +126,12 @@ let quillEditor = null;
 let plannerDate = new Date();
 let currentlyEditingSubject = null;
 let currentlyEditingExtracurricularId = null;
+let currentlyEditingCardId = null; 
+let reviewTimer = {
+    timerId: null,
+    timeLeft: 0,
+    duration: 5
+};
 let itemToShare = { id: null, type: null };
 let pomodoro = {
     timerId: null,
@@ -210,14 +216,19 @@ const resetTimerBtn = document.getElementById('reset-timer');
 const pomodoroTaskSelect = document.getElementById('task-select');
 const pomodoroCurrentTask = document.getElementById('current-task');
 const customMinutesInput = document.getElementById('custom-minutes');
-const startTimedFlipBtn = document.getElementById('start-timed-flip');
+
+// fixed
+const startManualFlipBtn = document.getElementById('start-manual-flip');
+const startAutoFlipBtn = document.getElementById('start-auto-flip');
 const startTypeAnswerBtn = document.getElementById('start-type-answer');
-const timedFlashcardDisplay = document.getElementById('timed-flashcard-display');
-const timedCardFront = document.getElementById('timed-card-front');
-const timedCardBack = document.getElementById('timed-card-back');
-const prevTimedCardBtn = document.getElementById('prev-timed-card');
-const flipTimedCardBtn = document.getElementById('flip-timed-card');
-const nextTimedCardBtn = document.getElementById('next-timed-card');
+
+const flipperFlashcardDisplay = document.getElementById('flipper-flashcard-display');
+const flipperCardFront = document.getElementById('flipper-card-front');
+const flipperCardBack = document.getElementById('flipper-card-back');
+const prevFlipperCardBtn = document.getElementById('prev-flipper-card');
+const flipFlipperCardBtn = document.getElementById('flip-flipper-card');
+const nextFlipperCardBtn = document.getElementById('next-flipper-card');
+
 const typeFlashcardDisplay = document.getElementById('type-flashcard-display');
 const typeCardFront = document.getElementById('type-card-front');
 const typeCardBack = document.getElementById('type-card-back');
@@ -561,7 +572,7 @@ function enterGuestMode() {
     mainContent.style.width = 'calc(100% - 70px)';
     mainContent.style.marginLeft = '70px';
 
-    const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino"];
+    const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino", "PEHM"];
     subjects = defaultSubjectNames.map(name => ({
         name: name,
         units: 1,
@@ -578,16 +589,13 @@ function enterGuestMode() {
 }
 
 async function initializeApp(user) {
-
     currentUser = user.uid;
     hideAuthModal();
 
- 
     const [savedData, pfp] = await Promise.all([
         DataService.loadData(user.uid),
         AuthService.getUserPfp(user.uid)
     ]);
-
 
     subjects = (savedData && Array.isArray(savedData.subjects)) ? savedData.subjects : [];
     subjects.forEach(s => {
@@ -601,18 +609,32 @@ async function initializeApp(user) {
     flashcardFolders = (savedData && Array.isArray(savedData.flashcardFolders)) ? savedData.flashcardFolders : [];
     notebooks = (savedData && Array.isArray(savedData.notebooks)) ? savedData.notebooks : [];
     extracurriculars = (savedData && Array.isArray(savedData.extracurriculars)) ? savedData.extracurriculars : [];
-     extracurriculars.forEach(e => {
+    extracurriculars.forEach(e => {
         e.meetings = e.meetings || [];
         e.projects = e.projects || [];
         e.tasks = e.tasks || [];
     });
-    
+
+    // 🔽 Added block: One-time check to add PEHM if missing
+    if (subjects && !subjects.some(s => s.name === 'PEHM')) {
+        subjects.push({
+            name: 'PEHM',
+            units: 1,
+            grade: null,
+            previousGrade: null,
+            currentGrade: null,
+            detailedGrades: {}
+        });
+        // Sort alphabetically for consistency
+        subjects.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    // 🔼 End of added block
+
     theme = (savedData && typeof savedData.theme === 'string') ? savedData.theme : 'light';
     themeColors = (savedData && typeof savedData.themeColors === 'object') ? savedData.themeColors : {};
 
-   
     if (subjects.length === 0) {
-        const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino"];
+        const defaultSubjectNames = ["Physics", "Chemistry", "Biology", "Math", "Statistics", "Computer Science", "Social Science", "English", "Filipino", "PEHM"];
         subjects = defaultSubjectNames.map(name => ({
             name: name,
             units: 1,
@@ -621,9 +643,8 @@ async function initializeApp(user) {
             currentGrade: null,
             detailedGrades: {}
         }));
-        saveAllData(); 
+        saveAllData();
     }
-
 
     usernameDisplay.textContent = user.email; // Use email from the Firebase user object
     profilePic.src = pfp;
@@ -636,12 +657,12 @@ async function initializeApp(user) {
     mainContent.style.marginLeft = '';
     document.querySelectorAll('.tab-btn').forEach(btn => btn.disabled = false);
 
-
     populateSubjectDropdowns();
     switchTab('dashboard-content');
     renderRightSidebarTasks();
     showDueTodayNotification();
 }
+
 
 
 auth.onAuthStateChanged(async user => {
@@ -1745,13 +1766,13 @@ saveNotebookBtn.addEventListener('click', () => {
 
 /**
  * =============================================================================
- * FUNCTION: FLASHCARDS (fix: di gumagana halos lahat ng features KEK)
+ * FUNCTION: FLASHCARDS (fixed: added new review modes: havent tested)
  * =============================================================================
  */
 function showFlashcardFoldersView() {
     document.querySelector('.flashcard-folders-view').classList.remove('hidden');
     document.querySelector('.flashcard-detail-view').classList.add('hidden');
-    document.querySelector('.flashcard-review-timed-view').classList.add('hidden');
+    document.querySelector('.flashcard-flipper-view').classList.add('hidden'); // Modified
     document.querySelector('.flashcard-review-type-view').classList.add('hidden');
     renderFlashcardFolders();
 }
@@ -1766,26 +1787,75 @@ function renderFlashcardFolders() {
     flashcardFolders.forEach(folder => {
         const card = document.createElement('div');
         card.className = 'folder-card';
+        // add and delete function: out for testing 
         card.innerHTML = `
             <h4>${escapeHTML(folder.name)}</h4>
             <p>${escapeHTML(folder.subject)}</p>
             <p>${folder.cards.length} cards</p>
             ${folder.isShared ? `<p class="shared-by-indicator">Shared by ${escapeHTML(folder.sharedBy)}</p>` : ''}
              <div class="resource-actions">
-                ${!folder.isShared ? `<button class="action-btn share-folder-btn" title="Share Folder"><i class="fas fa-share-alt"></i></button>` : ''}
+                ${!folder.isShared ? `
+                    <button class="action-btn edit-folder-btn" title="Edit Folder" data-folder-id="${folder.id}"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="action-btn delete-folder-btn" title="Delete Folder" data-folder-id="${folder.id}"><i class="fas fa-trash"></i></button>
+                    <button class="action-btn share-folder-btn" title="Share Folder" data-folder-id="${folder.id}"><i class="fas fa-share-alt"></i></button>
+                ` : ''}
             </div>
         `;
+        // click 
         card.addEventListener('click', (e) => {
             if (e.target.closest('.action-btn')) return;
-            openFlashcardFolder(folder.id)
+            openFlashcardFolder(folder.id);
         });
+        
+        // share (fix: doesnt work kek)
         card.querySelector('.share-folder-btn')?.addEventListener('click', e => {
             e.stopPropagation();
             openShareModal(folder.id, 'flashcardFolder');
-        })
+        });
+
         foldersGrid.appendChild(card);
     });
 }
+
+document.getElementById('folders-grid').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-folder-btn');
+    const deleteBtn = e.target.closest('.delete-folder-btn');
+
+    if (editBtn) {
+        e.stopPropagation();
+        const folderId = parseInt(editBtn.dataset.folderId);
+        const folderToEdit = flashcardFolders.find(f => f.id === folderId);
+        if (folderToEdit) {
+            const newName = prompt("Enter new folder name:", folderToEdit.name);
+            if (!newName) return; // cancel 
+
+            const newSubject = prompt("Enter new subject:", folderToEdit.subject);
+            if (!newSubject) return; // cancel 
+
+            // subject exists
+            if (subjects.find(s => s.name.toLowerCase() === newSubject.toLowerCase())) {
+                folderToEdit.name = newName;
+                folderToEdit.subject = newSubject;
+                saveAllData();
+                renderFlashcardFolders();
+                showCustomAlert("Folder updated successfully!");
+            } else {
+                showCustomAlert("Invalid subject. The subject must already exist in your dashboard.", "alert");
+            }
+        }
+    }
+
+    if (deleteBtn) {
+        e.stopPropagation();
+        const folderId = parseInt(deleteBtn.dataset.folderId);
+        showCustomConfirm("Are you sure you want to delete this folder and all the cards inside it?", () => {
+            flashcardFolders = flashcardFolders.filter(f => f.id !== folderId);
+            saveAllData();
+            renderFlashcardFolders();
+        });
+    }
+});
+
 
 document.getElementById('create-folder-btn').addEventListener('click', () => {
     const name = prompt("Enter new folder name:");
@@ -1811,9 +1881,8 @@ function openFlashcardFolder(folderId) {
 
     document.querySelector('.flashcard-folders-view').classList.add('hidden');
     document.querySelector('.flashcard-detail-view').classList.remove('hidden');
-    document.querySelector('.flashcard-review-timed-view').classList.add('hidden');
+    document.querySelector('.flashcard-flipper-view').classList.add('hidden'); // Modified
     document.querySelector('.flashcard-review-type-view').classList.add('hidden');
-
 
     document.getElementById('current-folder-name').textContent = `Folder: ${currentFlashcardFolder.name}`;
 
@@ -1821,9 +1890,9 @@ function openFlashcardFolder(folderId) {
     document.getElementById('add-flashcard-btn').style.display = isReadOnly ? 'none' : 'inline-flex';
     
     const hasCards = currentFlashcardFolder.cards.length > 0;
-    startTimedFlipBtn.disabled = !hasCards;
+    startManualFlipBtn.disabled = !hasCards; // Modified
+    startAutoFlipBtn.disabled = !hasCards; // Modified
     startTypeAnswerBtn.disabled = !hasCards;
-
 
     renderFlashcardsList(currentFlashcardFolder.id);
 }
@@ -1833,26 +1902,80 @@ function renderFlashcardsList(folderId) {
     const folder = flashcardFolders.find(f => f.id === folderId);
     listEl.innerHTML = '';
     if (!folder || folder.cards.length === 0) {
-        listEl.innerHTML = '<p class="empty-message">No cards in this folder.</p>';
+        listEl.innerHTML = '<p class="empty-message">No cards in this folder. Click "Add Flashcard" to create one!</p>';
         return;
     }
+    
+    const isReadOnly = !!folder.isShared;
+
     folder.cards.forEach(card => {
         const item = document.createElement('div');
         item.className = 'flashcard-item';
-        item.textContent = card.front;
+        item.innerHTML = `
+            <div class="flashcard-item-content">
+                <div class="flashcard-item-front"><strong>Front:</strong> ${escapeHTML(card.front)}</div>
+                <div class="flashcard-item-back"><strong>Back:</strong> ${escapeHTML(card.back)}</div>
+            </div>
+            ${!isReadOnly ? `
+            <div class="flashcard-item-actions">
+                <button class="action-btn edit-flashcard-btn" data-card-id="${card.id}" title="Edit Card"><i class="fas fa-pencil-alt"></i></button>
+                <button class="action-btn delete-flashcard-btn" data-card-id="${card.id}" title="Delete Card"><i class="fas fa-trash"></i></button>
+            </div>
+            ` : ''}
+        `;
         listEl.appendChild(item);
     });
 }
 
-document.getElementById('add-flashcard-btn').addEventListener('click', () => {
-    if (!currentFlashcardFolder) return;
-    openFlashcardModal();
+// event listener
+document.getElementById('flashcards-list').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-flashcard-btn');
+    if (editBtn) {
+        const cardId = parseInt(editBtn.dataset.cardId);
+        const cardToEdit = currentFlashcardFolder.cards.find(c => c.id === cardId);
+        if (cardToEdit) {
+            openFlashcardModal(cardToEdit);
+        }
+    }
+
+    const deleteBtn = e.target.closest('.delete-flashcard-btn');
+    if (deleteBtn) {
+        const cardId = parseInt(deleteBtn.dataset.cardId);
+        showCustomConfirm("Are you sure you want to delete this flashcard?", () => {
+            currentFlashcardFolder.cards = currentFlashcardFolder.cards.filter(c => c.id !== cardId);
+            saveAllData();
+            renderFlashcardsList(currentFlashcardFolder.id);
+            // no more review if done 
+            const hasCards = currentFlashcardFolder.cards.length > 0;
+            startManualFlipBtn.disabled = !hasCards;
+            startAutoFlipBtn.disabled = !hasCards;
+            startTypeAnswerBtn.disabled = !hasCards;
+        });
+    }
 });
 
-function openFlashcardModal() {
+
+document.getElementById('add-flashcard-btn').addEventListener('click', () => {
+    if (!currentFlashcardFolder) return;
+    openFlashcardModal(); // modal for new card
+});
+
+function openFlashcardModal(card = null) {
     closeAllModals();
-    flashcardFrontInput.value = '';
-    flashcardBackInput.value = '';
+    
+    if (card) { // editing new card
+        currentlyEditingCardId = card.id;
+        document.getElementById('flashcard-modal-title').textContent = "Edit Flashcard";
+        flashcardFrontInput.value = card.front;
+        flashcardBackInput.value = card.back;
+        saveFlashcardBtn.textContent = "Save Changes";
+    } else { // adding new card
+        currentlyEditingCardId = null;
+        document.getElementById('flashcard-modal-title').textContent = "Add Flashcard";
+        flashcardFrontInput.value = '';
+        flashcardBackInput.value = '';
+        saveFlashcardBtn.textContent = "Save Flashcard";
+    }
 
     modalOverlay.appendChild(flashcardModal);
     flashcardModal.classList.remove('hidden');
@@ -1862,32 +1985,75 @@ function openFlashcardModal() {
 saveFlashcardBtn.addEventListener('click', () => {
     const front = flashcardFrontInput.value.trim();
     const back = flashcardBackInput.value.trim();
-    if (!front || !back || !currentFlashcardFolder) return showCustomAlert("All fields required.", "alert");
+    if (!front || !back || !currentFlashcardFolder) return showCustomAlert("Front and back fields are required.", "alert");
 
-    currentFlashcardFolder.cards.push({ id: Date.now(), front, back });
+    if (currentlyEditingCardId) { // editing
+        const cardToUpdate = currentFlashcardFolder.cards.find(c => c.id === currentlyEditingCardId);
+        if (cardToUpdate) {
+            cardToUpdate.front = front;
+            cardToUpdate.back = back;
+        }
+    } else { // adding new card
+        currentFlashcardFolder.cards.push({ id: Date.now(), front, back });
+    }
+
     saveAllData();
     renderFlashcardsList(currentFlashcardFolder.id);
-    openFlashcardFolder(currentFlashcardFolder.id);
     closeAllModals();
+    currentlyEditingCardId = null; // reset editing
 });
 
-function startTimedReview() {
+// modes
+
+function startFlipperReview(isAuto) {
     if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
     currentCardIndex = 0;
+    
     document.querySelector('.flashcard-detail-view').classList.add('hidden');
-    document.querySelector('.flashcard-review-timed-view').classList.remove('hidden');
-    document.getElementById('timed-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
-    displayTimedCard();
+    document.querySelector('.flashcard-flipper-view').classList.remove('hidden');
+    document.getElementById('flipper-review-folder-name').textContent = `Reviewing: ${currentFlashcardFolder.name}`;
+    
+    const timerDisplay = document.getElementById('flipper-timer-display');
+    if (isAuto) {
+        reviewTimer.duration = parseInt(document.getElementById('auto-flip-seconds').value) || 5;
+        timerDisplay.classList.remove('hidden');
+    } else {
+        timerDisplay.classList.add('hidden');
+    }
+
+    displayFlipperCard(isAuto);
 }
 
-function displayTimedCard() {
+function displayFlipperCard(isAuto) {
+    if (reviewTimer.timerId) clearInterval(reviewTimer.timerId);
+
     const card = currentFlashcardFolder.cards[currentCardIndex];
-    timedCardFront.textContent = card.front;
-    timedCardBack.textContent = card.back;
-    timedFlashcardDisplay.classList.remove('flipped');
-    prevTimedCardBtn.disabled = (currentCardIndex === 0);
-    nextTimedCardBtn.disabled = (currentCardIndex === currentFlashcardFolder.cards.length - 1);
+    flipperCardFront.textContent = card.front;
+    flipperCardBack.textContent = card.back;
+    flipperFlashcardDisplay.classList.remove('flipped');
+    
+    prevFlipperCardBtn.disabled = (currentCardIndex === 0);
+    nextFlipperCardBtn.disabled = (currentCardIndex >= currentFlashcardFolder.cards.length - 1);
+
+    if (isAuto) {
+        startCardTimer();
+    }
 }
+
+function startCardTimer() {
+    reviewTimer.timeLeft = reviewTimer.duration;
+    document.getElementById('flipper-timer-countdown').textContent = reviewTimer.timeLeft;
+
+    reviewTimer.timerId = setInterval(() => {
+        reviewTimer.timeLeft--;
+        document.getElementById('flipper-timer-countdown').textContent = reviewTimer.timeLeft;
+        if (reviewTimer.timeLeft <= 0) {
+            clearInterval(reviewTimer.timerId);
+            flipperFlashcardDisplay.classList.add('flipped');
+        }
+    }, 1000);
+}
+
 
 function startTypeAnswerReview() {
     if (!currentFlashcardFolder || currentFlashcardFolder.cards.length === 0) return;
@@ -1913,11 +2079,31 @@ function displayTypeAnswerCard() {
     nextTypeCardBtn.disabled = true;
 }
 
-startTimedFlipBtn.addEventListener('click', startTimedReview);
+// EVENT LISTENER FOR MODESS
+startManualFlipBtn.addEventListener('click', () => startFlipperReview(false));
+startAutoFlipBtn.addEventListener('click', () => startFlipperReview(true));
 startTypeAnswerBtn.addEventListener('click', startTypeAnswerReview);
-flipTimedCardBtn.addEventListener('click', () => timedFlashcardDisplay.classList.toggle('flipped'));
-prevTimedCardBtn.addEventListener('click', () => { if (currentCardIndex > 0) { currentCardIndex--; displayTimedCard(); } });
-nextTimedCardBtn.addEventListener('click', () => { if (currentCardIndex < currentFlashcardFolder.cards.length - 1) { currentCardIndex++; displayTimedCard(); } });
+
+flipFlipperCardBtn.addEventListener('click', () => flipperFlashcardDisplay.classList.toggle('flipped'));
+prevFlipperCardBtn.addEventListener('click', () => {
+    if (currentCardIndex > 0) {
+        currentCardIndex--;
+        // auto timer check
+        const isAuto = !document.getElementById('flipper-timer-display').classList.contains('hidden');
+        displayFlipperCard(isAuto);
+    }
+});
+nextFlipperCardBtn.addEventListener('click', () => {
+    if (currentCardIndex < currentFlashcardFolder.cards.length - 1) {
+        currentCardIndex++;
+        const isAuto = !document.getElementById('flipper-timer-display').classList.contains('hidden');
+        displayFlipperCard(isAuto);
+    } else {
+        showCustomAlert("Review complete!");
+        openFlashcardFolder(currentFlashcardFolder.id);
+    }
+});
+
 
 checkTypeAnswerBtn.addEventListener('click', () => {
     const card = currentFlashcardFolder.cards[currentCardIndex];
@@ -1955,9 +2141,11 @@ nextTypeCardBtn.addEventListener('click', () => {
 });
 
 document.getElementById('back-to-folders').addEventListener('click', showFlashcardFoldersView);
-document.getElementById('back-from-timed-review').addEventListener('click', () => openFlashcardFolder(currentFlashcardFolder.id));
+document.getElementById('back-from-flipper-review').addEventListener('click', () => {
+    if (reviewTimer.timerId) clearInterval(reviewTimer.timerId); // STOP THE TIMER
+    openFlashcardFolder(currentFlashcardFolder.id)
+});
 document.getElementById('back-from-type-review').addEventListener('click', () => openFlashcardFolder(currentFlashcardFolder.id));
-
 
 /**
  * =============================================================================

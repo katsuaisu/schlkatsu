@@ -185,55 +185,66 @@
                 </section>
 
                 <section id="flashcards-content" class="tab-content hidden">
-                    <h2>Flashcards</h2>
-                    <div class="flashcard-folders-view">
-                        <button id="create-folder-btn" class="cute-button">Create New Folder</button>
-                        <h3>Your Folders</h3>
-                        <div id="folders-grid" class="folders-grid"></div>
-                    </div>
+    <h2>Flashcards</h2>
+    <div class="flashcard-folders-view">
+        <button id="create-folder-btn" class="cute-button">Create New Folder</button>
+        <h3>Your Folders</h3>
+        <div id="folders-grid" class="folders-grid"></div>
+    </div>
 
-                    <div class="flashcard-detail-view hidden">
-                        <button id="back-to-folders" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folders</button>
-                        <h3 id="current-folder-name">Folder: </h3>
-                        <div class="flashcard-actions">
-                            <button id="add-flashcard-btn" class="cute-button">Add Flashcard</button>
-                            <button id="start-timed-flip" class="cute-button">Start Timed Review</button>
-                            <button id="start-type-answer" class="cute-button">Start Type Answer Review</button>
-                        </div>
-                        <h4>Flashcards in this Folder:</h4>
-                        <div id="flashcards-list" class="flashcards-list"></div>
-                    </div>
+    <div class="flashcard-detail-view hidden">
+        <button id="back-to-folders" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folders</button>
+        <h3 id="current-folder-name">Folder: </h3>
+        <div class="flashcard-actions">
+            <button id="add-flashcard-btn" class="cute-button">Add Flashcard</button>
+            <div class="review-option-group">
+                <button id="start-manual-flip" class="cute-button">Manual Review</button>
+            </div>
+            <div class="review-option-group">
+                <button id="start-auto-flip" class="cute-button">Auto-Flip Review</button>
+                <input type="number" id="auto-flip-seconds" class="modal-input" value="5" min="1" title="Seconds per card">
+            </div>
+            <div class="review-option-group">
+                <button id="start-type-answer" class="cute-button">Type Answer Review</button>
+            </div>
+        </div>
+        <h4>Flashcards in this Folder:</h4>
+        <div id="flashcards-list" class="flashcards-list"></div>
+    </div>
 
-                    <div class="flashcard-review-timed-view hidden">
-                        <button id="back-from-timed-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
-                        <h3 id="timed-review-folder-name"></h3>
-                        <div id="timed-flashcard-display" class="flashcard-card">
-                            <div class="flashcard-front" id="timed-card-front"></div>
-                            <div class="flashcard-back" id="timed-card-back"></div>
-                        </div>
-                        <div class="review-buttons">
-                             <button id="prev-timed-card" class="cute-button timer-btn">Previous</button>
-                             <button id="flip-timed-card" class="cute-button timer-btn">Flip</button>
-                             <button id="next-timed-card" class="cute-button timer-btn">Next</button>
-                        </div>
-                    </div>
+    <div class="flashcard-flipper-view hidden">
+        <button id="back-from-flipper-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
+        <h3 id="flipper-review-folder-name"></h3>
+        <div id="flipper-timer-display" class="flipper-timer">
+            Time left: <span id="flipper-timer-countdown">5</span>s
+        </div>
+        <div id="flipper-flashcard-display" class="flashcard-card">
+            <div class="flashcard-front" id="flipper-card-front"></div>
+            <div class="flashcard-back" id="flipper-card-back"></div>
+        </div>
+        <div class="review-buttons">
+             <button id="prev-flipper-card" class="cute-button timer-btn">Previous</button>
+             <button id="flip-flipper-card" class="cute-button timer-btn">Flip</button>
+             <button id="next-flipper-card" class="cute-button timer-btn">Next</button>
+        </div>
+    </div>
 
-                    <div class="flashcard-review-type-view hidden">
-                        <button id="back-from-type-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
-                        <h3 id="type-review-folder-name"></h3>
-                        <div id="type-flashcard-display" class="flashcard-card">
-                            <div class="flashcard-front" id="type-card-front"></div>
-                            <div class="flashcard-back" id="type-card-back" class="hidden"></div>
-                        </div>
-                        <input type="text" id="type-answer-input" placeholder="Type your answer here...">
-                        <p id="type-answer-feedback" class="feedback-message"></p>
-                        <div class="review-buttons">
-                            <button id="check-type-answer" class="cute-button timer-btn">Check Answer</button>
-                            <button id="reveal-type-answer" class="cute-button timer-btn">Reveal Answer</button>
-                            <button id="next-type-card" class="cute-button timer-btn" disabled>Next Card</button>
-                        </div>
-                    </div>
-                </section>
+    <div class="flashcard-review-type-view hidden">
+        <button id="back-from-type-review" class="cute-button back-btn"><i class="fas fa-arrow-left"></i> Back to Folder</button>
+        <h3 id="type-review-folder-name"></h3>
+        <div id="type-flashcard-display" class="flashcard-card">
+            <div class="flashcard-front" id="type-card-front"></div>
+            <div class="flashcard-back" id="type-card-back" class="hidden"></div>
+        </div>
+        <input type="text" id="type-answer-input" class="modal-input" placeholder="Type your answer here...">
+        <p id="type-answer-feedback" class="feedback-message"></p>
+        <div class="review-buttons">
+            <button id="check-type-answer" class="cute-button timer-btn">Check Answer</button>
+            <button id="reveal-type-answer" class="cute-button timer-btn">Reveal Answer</button>
+            <button id="next-type-card" class="cute-button timer-btn" disabled>Next Card</button>
+        </div>
+    </div>
+</section>
 
                 <section id="notes-content" class="tab-content hidden">
                     <h2>Notes</h2>
