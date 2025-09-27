@@ -105,6 +105,14 @@ let notebooks = [];
 let extracurriculars = [];
 let theme = 'light';
 let themeColors = {};
+let studySession = {
+    isActive: false,
+    subjectName: null,
+    startTime: null,
+    timerId: null,
+    accumulated: 0 // in seconds
+};
+
 
 const gradesDropdownOptions = ["1.00", "1.25", "1.50", "1.75", "2.00", "2.25", "2.50", "2.75", "3.00", "4.00", "5.00"];
 const gradesOptionsNumeric = gradesDropdownOptions.map(g => parseFloat(g));
@@ -565,7 +573,9 @@ function closeAllModals() {
         modal.classList.add('hidden');
     });
     if (quillEditor) quillEditor = null;
-    currentNotebook = null;
+    currentNotebook = null; 
+    currentlyEditingCardId = null; 
+    // -----------------
     modalOverlay.classList.add('hidden');
     appContainer.classList.remove('blurred');
     currentlyEditingSubject = null;
@@ -865,14 +875,15 @@ saveNewSubjectBtn.addEventListener('click', () => {
             showCustomAlert(`Subject "${oldName}" was updated.`);
         }
     } else {
-        subjects.push({
-            name: newName,
-            units: 1,
-            grade: null,
-            previousGrade: null,
-            currentGrade: null,
-            detailedGrades: {}
-        });
+       subjects.push({
+    name: newName,
+    units: 1,
+    grade: null,
+    previousGrade: null,
+    currentGrade: null,
+    detailedGrades: {},
+    studyTime: 0 
+});
         showCustomAlert(`Subject "${newName}" added!`);
     }
     
@@ -947,6 +958,20 @@ function openSubjectDetail(subjectName) {
     modalOverlay.appendChild(subjectDetailModal);
     subjectDetailModal.classList.remove('hidden');
     subjectDetailTitle.textContent = subjectName;
+
+    const subject = subjects.find(s => s.name === subjectName);
+
+  
+    const totalMinutes = Math.floor((subject.studyTime || 0) / 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    document.getElementById('total-study-time').textContent = `${hours}h ${minutes}m`;
+
+    const startBtn = document.getElementById('start-study-session-btn');
+    startBtn.onclick = () => startStudySession(subjectName);
+    startBtn.disabled = studySession.isActive; 
+
+    
     subjectDetailTabBtns.forEach(btn => btn.classList.remove('active'));
     subjectDetailContents.forEach(content => content.classList.add('hidden'));
     document.querySelector('.subject-detail-tab-btn[data-detail-tab="subject-tasks"]').classList.add('active');
@@ -2385,4 +2410,94 @@ document.addEventListener('DOMContentLoaded', () => {
         applyCustomColors(); // applies the css styles normally 
         showCustomAlert(`Colors for ${theme} mode have been reset.`, 'notification');
     });
+});
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+    const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+    const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+}
+
+function updateStudyTimerDisplay() {
+    const timerWidget = document.getElementById('study-timer-display');
+    if (!studySession.isActive) {
+        timerWidget.classList.add('hidden');
+        return;
+    }
+    timerWidget.classList.remove('hidden');
+    document.getElementById('study-timer-subject').textContent = `Studying: ${studySession.subjectName}`;
+    
+    const elapsedTime = (Date.now() - studySession.startTime) / 1000;
+    const totalSeconds = studySession.accumulated + elapsedTime;
+    document.getElementById('study-timer-time').textContent = formatTime(totalSeconds);
+}
+
+function startStudySession(subjectName) {
+    if (studySession.isActive) {
+        return showCustomAlert("Another study session is already active!", "alert");
+    }
+    closeAllModals();
+    studySession.isActive = true;
+    studySession.subjectName = subjectName;
+    studySession.startTime = Date.now();
+    studySession.accumulated = 0;
+
+    studySession.timerId = setInterval(updateStudyTimerDisplay, 1000);
+    document.getElementById('study-pause-resume-btn').innerHTML = '<i class="fas fa-pause"></i>';
+    updateStudyTimerDisplay(); // Initial display
+}
+
+function pauseStudySession() {
+    if (!studySession.isActive || !studySession.timerId) return;
+
+    clearInterval(studySession.timerId);
+    studySession.timerId = null; // Mark as paused
+    const elapsedTime = (Date.now() - studySession.startTime) / 1000;
+    studySession.accumulated += elapsedTime;
+    
+    document.getElementById('study-pause-resume-btn').innerHTML = '<i class="fas fa-play"></i>';
+}
+
+function resumeStudySession() {
+    if (!studySession.isActive || studySession.timerId) return;
+
+    studySession.startTime = Date.now();
+    studySession.timerId = setInterval(updateStudyTimerDisplay, 1000);
+    document.getElementById('study-pause-resume-btn').innerHTML = '<i class="fas fa-pause"></i>';
+}
+
+function stopStudySession() {
+    if (!studySession.isActive) return;
+
+    clearInterval(studySession.timerId);
+    
+    if (studySession.timerId !== null) { // If it wasn't paused
+        const elapsedTime = (Date.now() - studySession.startTime) / 1000;
+        studySession.accumulated += elapsedTime;
+    }
+
+    // Save data
+    const subject = subjects.find(s => s.name === studySession.subjectName);
+    if (subject) {
+        if (!subject.studyTime) subject.studyTime = 0;
+        subject.studyTime += studySession.accumulated;
+        saveAllData();
+    }
+    
+    // Reset state
+    studySession = { isActive: false, subjectName: null, startTime: null, timerId: null, accumulated: 0 };
+    updateStudyTimerDisplay(); // This will hide the widget
+}
+
+// Add event listeners for the global timer controls
+document.getElementById('study-pause-resume-btn').addEventListener('click', () => {
+    if (studySession.timerId) { // If timer is running, pause it
+        pauseStudySession();
+    } else { // If timer is paused, resume it
+        resumeStudySession();
+    }
+});
+
+document.getElementById('study-stop-btn').addEventListener('click', () => {
+    showCustomConfirm("Are you sure you want to end this study session?", stopStudySession);
 });

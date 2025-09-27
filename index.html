@@ -316,7 +316,19 @@
                     </div>
                 </div>
             </div>
+</div>
 
+            <div id="study-timer-display" class="study-timer-widget hidden">
+                <h4 id="study-timer-subject">Studying: Physics</h4>
+                <div id="study-timer-time" class="timer-display">00:00:00</div>
+                <div class="study-timer-controls">
+                    <button id="study-pause-resume-btn" class="cute-button timer-btn"><i class="fas fa-pause"></i></button>
+                    <button id="study-stop-btn" class="cute-button timer-btn reset-btn"><i class="fas fa-stop"></i></button>
+                </div>
+            </div>
+
+            <div class="upcoming-tasks">
+                <h4 class="upcoming-header">Due Tomorrow</h4>
             <div class="upcoming-tasks">
                 <h4 class="upcoming-header">Due Tomorrow</h4>
                 <ul id="due-tomorrow-list" class="task-list">
@@ -328,11 +340,37 @@
         </aside>
     </div>
 
-    <div id="settings-modal" class="modal-content hidden">
-        <div class="modal-header">
-            <h3>Settings</h3>
-            <button class="modal-close-btn cute-button-icon-only">&times;</button>
+  <div id="settings-modal" class="modal-content hidden">
+    <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="modal-close-btn cute-button-icon-only">&times;</button>
+    </div>
+
+    <div class="settings-section">
+        <h4><i class="fas fa-user-circle"></i> Profile</h4>
+        <div class="profile-settings-view">
+            <img id="settings-pfp-preview" src="https://i.imgur.com/V4RclNb.png" alt="PFP Preview" class="pfp">
+            <div class="profile-inputs">
+                <label for="username-input">Username:</label>
+                <input type="text" id="username-input" class="modal-input" placeholder="Your display name">
+                <label for="pfp-url-input">Profile Picture URL:</label>
+                <input type="url" id="pfp-url-input" class="modal-input" placeholder="https://example.com/image.png">
+            </div>
         </div>
+    </div>
+
+    <div class="settings-section">
+        <h4><i class="fas fa-user-friends"></i> Friends</h4>
+        <div id="friends-list" class="friends-list-container">
+            </div>
+        <form id="add-friend-form" class="detail-add-form">
+            <input type="email" id="add-friend-email" class="modal-input" placeholder="Add friend by email" required>
+            <button type="submit" class="cute-button">Add</button>
+        </form>
+    </div>
+
+    <div class="settings-section">
+        <h4><i class="fas fa-palette"></i> Theme</h4>
         <div class="settings-option">
             <label for="theme-toggle">Dark Mode:</label>
             <label class="switch">
@@ -340,10 +378,32 @@
                 <span class="slider round"></span>
             </label>
         </div>
-        <div class="settings-option">
-            <label for="pfp-url-input">Profile Picture URL:</label>
-             <input type="url" id="pfp-url-input" class="modal-input" placeholder="https://example.com/image.png">
+        <h5>Customize Colors</h5>
+        <div class="color-picker-container">
+            <div class="color-picker-group">
+                <label for="color-accent">Accent</label>
+                <input type="color" id="color-accent" data-var="--accent-color">
+            </div>
+            <div class="color-picker-group">
+                <label for="color-bg-primary">Primary BG</label>
+                <input type="color" id="color-bg-primary" data-var="--bg-color-primary">
+            </div>
+            <div class="color-picker-group">
+                <label for="color-bg-secondary">Secondary BG</label>
+                <input type="color" id="color-bg-secondary" data-var="--bg-color-secondary">
+            </div>
+             <div class="color-picker-group">
+                <label for="color-text-primary">Text</label>
+                <input type="color" id="color-text-primary" data-var="--text-color-primary">
+            </div>
         </div>
+         <button id="reset-theme-btn" class="cute-button reset-btn" style="width: 100%; margin-top: 10px;">Reset Current Theme Colors</button>
+    </div>
+
+    <div class="modal-buttons">
+        <button id="save-settings-btn" class="cute-button">Save All Settings</button>
+    </div>
+</div>
         
         <h4>Customize Colors</h4>
         <div class="color-picker-container">
@@ -384,6 +444,16 @@
     </div>
 
     <div id="subject-detail-modal" class="modal-content hidden">
+          </div>
+        <div class="subject-detail-content">
+            <div id="subject-study-session-controls" class="subject-study-controls">
+                <p>Total time studied: <strong id="total-study-time">0h 0m</strong></p>
+                <button id="start-study-session-btn" class="cute-button">
+                    <i class="fas fa-play"></i> Start Study Session
+                </button>
+            </div>
+
+            <div id="subject-tasks" class="detail-tab-content">
         <div class="modal-header">
             <h3 id="subject-detail-title"></h3>
             <button class="modal-close-btn cute-button-icon-only">&times;</button>

@@ -109,7 +109,6 @@ h1, h2, h3, h4, strong {
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 2px 0 5px var(--shadow-color); 
     flex-shrink: 0;
     z-index: 10;
     transition: width 0.3s ease;
@@ -223,7 +222,6 @@ h1, h2, h3, h4, strong {
     border-radius: 12px;
     padding: 25px;
     margin-bottom: 25px; 
-    box-shadow: 0 4px 10px var(--shadow-color);
   
 }
 #tab-content-wrapper > section:last-of-type {
@@ -259,15 +257,15 @@ h1, h2, h3, h4, strong {
 
 
 .dashboard-card {
-    border-radius: 16px; 
+    border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 4px 12px var(--shadow-color);
-    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid var(--border-color); 
+    transition: transform 0.2s, border-color 0.2s;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; 
-    min-height: 180px; 
-    position: relative; 
+    justify-content: space-between;
+    min-height: 180px;
+    position: relative;
     font-family: var(--font-family-system);
     background: var(--bg-color-secondary);
     border-left: 5px solid var(--accent-color);
@@ -275,7 +273,7 @@ h1, h2, h3, h4, strong {
 
 .dashboard-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(var(--accent-color-rgb),0.1);
+    border-color: var(--accent-color); 
 }
 .dashboard-card-main {
     cursor: pointer;
@@ -686,7 +684,6 @@ body.dark-mode select {
     padding: 25px 20px; 
     display: flex;
     flex-direction: column;
-    box-shadow: -2px 0 5px var(--shadow-color); 
     overflow-y: auto; 
     flex-shrink: 0; 
     z-index: 10;
@@ -1333,25 +1330,41 @@ input[type="color"]::-moz-color-swatch {
     flex-direction: column;
 }
 .notebook-card {
-    background: var(--bg-color-secondary);
-    padding: 15px 15px 15px 25px;
-    border-radius: 5px;
-    box-shadow: 0 2px 8px rgba(var(--shadow-color), 0.8);
+    background: var(--bg-color-darker);
+    border-radius: 8px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     position: relative;
-    border-left: 1px dashed rgba(var(--accent-color-rgb), 0.5);
+    padding: 15px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px var(--shadow-color);
+    /* This creates the "stacked paper" effect */
+    position: relative;
 }
-.notebook-card::before {
+.notebook-card::before, .notebook-card::after {
     content: '';
     position: absolute;
-    left: 10px;
+    left: 0;
     top: 0;
-    bottom: 0;
-    width: 5px;
-    background-image: repeating-linear-gradient(transparent 0, transparent 5px, var(--accent-color) 5px, var(--accent-color) 10px);
-    background-size: 1px 15px;
-    opacity: 0.6;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-color-darker);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    z-index: -1;
+    transition: transform 0.2s;
+}
+.notebook-card::before {
+    transform: rotate(-3deg);
+}
+.notebook-card::after {
+    transform: rotate(2deg);
+}
+.notebook-card:hover::before {
+    transform: rotate(-5deg);
+}
+.notebook-card:hover::after {
+    transform: rotate(4deg);
 }
 
 .folder-card:hover, .notebook-card:hover {
@@ -1903,4 +1916,107 @@ input[type="color"]::-moz-color-swatch {
     display: flex;
     gap: 5px;
     margin-left: 15px; 
+}
+
+.settings-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+.settings-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.settings-section h4 {
+    color: var(--accent-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+.settings-section h4 i {
+    margin-right: 8px;
+}
+
+.profile-settings-view {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.profile-settings-view .pfp {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+}
+.profile-inputs {
+    flex-grow: 1;
+}
+.profile-inputs label {
+    font-size: 0.9em;
+    color: var(--text-color-secondary);
+    margin-bottom: 3px;
+    display: block;
+}
+.profile-inputs input {
+    margin-bottom: 10px;
+}
+.profile-inputs input:last-child {
+    margin-bottom: 0;
+}
+
+.friends-list-container {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+}
+.friend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+}
+.friend-item:hover {
+    background-color: var(--bg-color-darker);
+}
+.friend-item span {
+    font-weight: 500;
+}
+#add-friend-form {
+    margin-bottom: 0;
+}
+.study-timer-widget {
+    background-color: var(--active-tab-bg);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 25px;
+    border: 1px solid var(--border-color);
+}
+.study-timer-widget h4 {
+    margin: 0 0 10px 0;
+    color: var(--text-color-secondary);
+    font-size: 1em;
+}
+.study-timer-widget .timer-display {
+    font-size: 2.5em; /* Smaller than pomodoro */
+    padding: 10px 0;
+}
+.study-timer-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.subject-study-controls {
+    text-align: center;
+    padding: 10px;
+    background-color: var(--bg-color-darker);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+.subject-study-controls p {
+    margin: 0 0 10px 0;
 }
