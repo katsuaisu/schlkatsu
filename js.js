@@ -312,32 +312,56 @@ function saveAllData(options = {}) {
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginError.classList.add('hidden');
+    
+    // Get the button to show a loading state
+    const loginButton = loginForm.querySelector('button[type="submit"]');
+    loginButton.disabled = true;
+    loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+
     const email = document.getElementById('login-email').value;
     const password = document.getElementById('login-password').value;
 
     const result = await AuthService.login(email, password);
+    
     if (!result.success) {
         loginError.textContent = result.message;
         loginError.classList.remove('hidden');
+        
+        // Re-enable the button on failure
+        loginButton.disabled = false;
+        loginButton.innerHTML = 'Login';
     }
-   
+    // On success, we do nothing.
+    // The button remains disabled and shows "Logging in..."
+    // The onAuthStateChanged listener will fire and close the modal,
+    // which is the correct behavior.
 });
 
 
 signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     signupError.classList.add('hidden');
+
+   
+    const signupButton = signupForm.querySelector('button[type="submit"]');
+    signupButton.disabled = true;
+    signupButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing up...';
+
     const email = document.getElementById('signup-email').value;
     const password = document.getElementById('signup-password').value;
 
     const result = await AuthService.signup(email, password);
+    
     if (!result.success) {
         signupError.textContent = result.message;
         signupError.classList.remove('hidden');
+        
+       
+        signupButton.disabled = false;
+        signupButton.innerHTML = 'Sign Up';
     }
     
 });
-
 
 logoutBtn.addEventListener('click', () => {
     AuthService.logout();
