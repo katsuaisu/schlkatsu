@@ -1885,9 +1885,11 @@ function renderFlashcardFolders() {
         foldersGrid.innerHTML = '<p class="empty-message">No flashcard folders created.</p>';
         return;
     }
+
     flashcardFolders.forEach(folder => {
         const card = document.createElement('div');
         card.className = 'folder-card';
+        card.dataset.folderId = folder.id; 
         card.innerHTML = `
             <h4><i class="fas fa-layer-group"></i> ${escapeHTML(folder.name)}</h4>
             <p>${escapeHTML(folder.subject)}</p>
@@ -1895,26 +1897,58 @@ function renderFlashcardFolders() {
             ${folder.isShared ? `<p class="shared-by-indicator">Shared by ${escapeHTML(folder.sharedBy)}</p>` : ''}
              <div class="resource-actions">
                 ${!folder.isShared ? `
-                    <button class="action-btn edit-folder-btn" title="Edit Folder" data-folder-id="${folder.id}"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="action-btn delete-folder-btn" title="Delete Folder" data-folder-id="${folder.id}"><i class="fas fa-trash"></i></button>
-                    <button class="action-btn share-folder-btn" title="Share Folder" data-folder-id="${folder.id}"><i class="fas fa-share-alt"></i></button>
+                    <button class="action-btn edit-folder-btn" title="Edit Folder"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="action-btn delete-folder-btn" title="Delete Folder"><i class="fas fa-trash"></i></button>
+                    <button class="action-btn share-folder-btn" title="Share Folder"><i class="fas fa-share-alt"></i></button>
                 ` : ''}
             </div>
         `;
-        card.addEventListener('click', (e) => {
-            if (e.target.closest('.action-btn')) return;
-            openFlashcardFolder(folder.id);
-        });
-        
-        card.querySelector('.share-folder-btn')?.addEventListener('click', e => {
-            e.stopPropagation();
-            openShareModal(folder.id, 'flashcardFolder');
-        });
-
         foldersGrid.appendChild(card);
     });
-}
 
+
+    foldersGrid.onclick = (e) => {
+        const card = e.target.closest('.folder-card');
+        if (!card) return;
+
+        const folderId = parseInt(card.dataset.folderId);
+        const folder = flashcardFolders.find(f => f.id === folderId);
+        if (!folder) return;
+
+        if (e.target.closest('.share-folder-btn')) {
+            e.stopPropagation();
+            openShareModal(folder.id, 'flashcardFolder');
+        } else if (e.target.closest('.edit-folder-btn')) {
+            e.stopPropagation();
+            const folderToEdit = flashcardFolders.find(f => f.id === folderId);
+            if (folderToEdit) {
+                const newName = prompt("Enter new folder name:", folderToEdit.name);
+                if (newName === null || newName.trim() === '') return;
+                const newSubject = prompt("Enter new subject:", folderToEdit.subject);
+                if (newSubject === null) return;
+                if (subjects.find(s => s.name.toLowerCase() === newSubject.toLowerCase())) {
+                    folderToEdit.name = newName.trim();
+                    folderToEdit.subject = newSubject;
+                    saveAllData();
+                    renderFlashcardFolders();
+                    showCustomAlert("Folder updated successfully!");
+                } else {
+                    showCustomAlert("Invalid subject. The subject must already exist in your dashboard.", "alert");
+                }
+            }
+        } else if (e.target.closest('.delete-folder-btn')) {
+            e.stopPropagation();
+            showCustomConfirm("Are you sure you want to delete this folder and all the cards inside it?", () => {
+                flashcardFolders = flashcardFolders.filter(f => f.id !== folderId);
+                saveAllData();
+                renderFlashcardFolders();
+            });
+        } else {
+            
+            openFlashcardFolder(folder.id);
+        }
+    };
+}
 document.getElementById('folders-grid').addEventListener('click', (e) => {
     const editBtn = e.target.closest('.edit-folder-btn');
     const deleteBtn = e.target.closest('.delete-folder-btn');
